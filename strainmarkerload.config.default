@@ -1,0 +1,95 @@
+#format: sh
+#
+#  strainmarkerload.config
+#
+#  This file sets up environment variables that are needed for a specific
+#  data provider input file to be handled by the annotation loader.
+#
+###########################################################################
+
+###########################################################################
+#
+#  GENERAL SETTINGS
+#
+###########################################################################
+
+#
+#  If the MGICONFIG environment variable does not have a local override,
+#  use the default "live" settings.
+#
+if [ "${MGICONFIG}" = "" ]
+then
+    MGICONFIG=/usr/local/mgi/live/mgiconfig
+    export MGICONFIG
+fi
+
+. ${MGICONFIG}/master.config.sh
+
+###########################################################################
+#
+#  LOAD SPECIFIC SETTINGS
+#
+###########################################################################
+
+#  Path name of the archive, logs, reports and output directories
+FILEDIR=${DATALOADSOUTPUT}/mgi/strainmarkerload
+ARCHIVEDIR=${FILEDIR}/archive
+LOGDIR=${FILEDIR}/logs
+RPTDIR=${FILEDIR}/reports
+OUTPUTDIR=${FILEDIR}/output
+INPUTDIR=${FILEDIR}/input
+
+export FILEDIR ARCHIVEDIR LOGDIR RPTDIR OUTPUTDIR INPUTDIR
+
+# input/output
+INPUT_FILE=${DATADOWNLOADS}/
+
+export INPUT_FILE
+
+BCP_FILE=MRK_StrainMarker.bcp
+
+export BCP_FILE
+
+#  Complete path name of the log files
+LOG_FILE=${LOGDIR}/strainmarkerload.log
+LOG_PROC=${LOGDIR}/strainmarkerload.proc.log
+LOG_DIAG=${LOGDIR}/strainmarkerload.diag.log
+LOG_CUR=${LOGDIR}/strainmarkerload.cur.log
+LOG_VAL=${LOGDIR}/strainmarkerload.val.log
+
+export LOG_FILE LOG_PROC LOG_DIAG LOG_CUR LOG_VAL
+
+# if true delete and bcp will not be done
+QC_ONLY=false
+
+export QC_ONLY
+
+# load reference
+JNUM=J:????
+
+# minumum number of records expected in the input file
+MIN_RECORDS=7000
+
+export JNUM MIN_RECORDS
+
+#  The name of the job stream for the load
+JOBSTREAM=strainmarkerload
+
+export JOBSTREAM
+
+###########################################################################
+#
+#  MISCELLANEOUS SETTINGS
+#
+###########################################################################
+
+#  The name of the load for the subject of an email notification
+MAIL_LOADNAME="Strain Marker Load"
+
+#  Recipient list for mailing the log files (comma-separated)
+MAIL_LOG_PROC="mgiadmin"
+
+export MAIL_LOADNAME MAIL_LOG_PROC
+
+INSTALLDIR=${STRAINMARKERLOAD}
+export INSTALLDIR
