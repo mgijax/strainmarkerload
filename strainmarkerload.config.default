@@ -42,13 +42,15 @@ INPUTDIR=${FILEDIR}/input
 export FILEDIR ARCHIVEDIR LOGDIR RPTDIR OUTPUTDIR INPUTDIR
 
 # input/output
-INPUT_FILE=${DATADOWNLOADS}/
+INPUT_GFF_DIR=${DATADOWNLOADS}/ftp.ensembl.org/pub/release-91/gff3
+INPUT_DIR_LIST="mus_caroli mus_musculus_129s1svimj mus_musculus_aj mus_musculus_akrj mus_musculus_balbcj mus_musculus_c3hhej mus_musculus_c57bl6nj mus_musculus_casteij mus_musculus_cbaj mus_musculus_dba2j mus_musculus_fvbnj mus_musculus_lpj mus_musculus_nodshiltj mus_musculus_nzohlltj mus_musculus_pwkphj mus_musculus_wsbeij mus_pahari mus_spretus_spreteij"
+#INPUT_DIR_LIST="mus_caroli mus_musculus_129s1svimj mus_musculus_aj"
+export INPUT_FILE_DIR INPUT_DIR_LIST
 
-export INPUT_FILE
+SM_BCP_FILE=MRK_StrainMarker.bcp
+ACC_BCP_FILE=ACC_Accession.bcp
 
-BCP_FILE=MRK_StrainMarker.bcp
-
-export BCP_FILE
+export SM_BCP_FILE ACC_BCP_FILE
 
 #  Complete path name of the log files
 LOG_FILE=${LOGDIR}/strainmarkerload.log
@@ -59,18 +61,21 @@ LOG_VAL=${LOGDIR}/strainmarkerload.val.log
 
 export LOG_FILE LOG_PROC LOG_DIAG LOG_CUR LOG_VAL
 
+# minimum number of gene records in a strain file
+MIN_RECORDS=32000
+# Pahari has 35091
+#MIN_RECORDS=35092
+export MIN_RECORDS
+
 # if true delete and bcp will not be done
 QC_ONLY=false
 
 export QC_ONLY
 
 # load reference
-JNUM=J:????
+JNUM=J:259852
 
-# minumum number of records expected in the input file
-MIN_RECORDS=7000
-
-export JNUM MIN_RECORDS
+export JNUM 
 
 #  The name of the job stream for the load
 JOBSTREAM=strainmarkerload
