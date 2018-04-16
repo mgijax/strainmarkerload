@@ -110,9 +110,8 @@ messageMap = {}
 # Lookups
 strainTranslationLookup = {} # {badName: _Marker_key, ...}
 markerLookup = {}            # {MGI ID: Marker ...}
-biotypeLookup = []             # lookup raw biotypes from the database
-mgiIDsInInput = {}           # {mgiID:[mpgId, ...], ...} the current set of marker 
-			     #  MGI IDs from the input with their mpgIds
+biotypeLookup = []           # lookup raw biotypes from the database
+
 # count of strain markers that will be loaded
 loadedCt = 0
 
@@ -160,7 +159,7 @@ class StrainMarker:
         # Purpose: constructor
 	self.markerID = None
 	self.mgpIDs = set()
-
+        
     def toString(self):
         return '%s, %s' % (self.mgiID, self.mgpIDs)
 # end class StrainMarker ----------------------------
@@ -251,7 +250,7 @@ def init():
     messageMap['mgi_u'] = 'Marker from input unresolved'
     messageMap['mgi_s'] = 'Marker from input is secondary ID'
     messageMap['mgi_no'] = 'Marker from input is not official'
-    messageMap['mgi_mgp'] = 'Markers from input with > 1 Strain specific MGP ID' 
+    messageMap['mgi_mgp'] = 'Markers from input with > 1 Strain specific MGP ID'  # when reporting multis. 
     #
     # create lookups
     #
@@ -351,17 +350,11 @@ def parseFiles( ):
     # Effects: sets global variables, writes to the file system
     # Throws: Nothing
    
-    global qcDict, mgiIDsInInput 
+    global qcDict
 
     inputFileList = string.split(inputFileString, ' ')
     first = 1
     for file in inputFileList:
-	mgiIDsInInput = {} # {mgiID: ([set of mpIDs]), ...}
-	# add the last mgiIDsInInput strain file to the qcDict
-	if first == 0:
-	   qcDict['mgi_mgp'].append(mgiIDsInInput)
-	if first == 1:
-	    first = 0
         file = file.strip() # in case extra spaces btwn filenames in config
 	inputFile = '%s/%s.txt' % (infileDir, file)
    	print 'inputFile: %s' % inputFile
@@ -371,6 +364,20 @@ def parseFiles( ):
 	if strain not in strainTranslationLookup:
 	    qcDict['strain_u'].append(strain)
 	    continue 
+        
+        # add the last strainMarkerInput strain file to the qcDict
+        if first == 0:
+           qcDict['mgi_mgp'].append(strainMarkerInput)
+        if first == 1:
+            first = 0
+
+	# build this as we parse each file - adding mgpIDs to strainMarkerObject if mgiID
+	# found > 1 in file
+	strainMarkerDict = {}   # {mgiID:strainMarkerObject, ...}
+
+	# after file parsed copy the strainMarkerObjects from strainMarkerDict to this mapping by strain
+	strainMarkerInput = {} 		# {strain: list of strainMarkerObjects, ...}
+	strainMarkerInput[strain] = []	# initialize 
 	line = fpIn.readline()
 	while line:
 	    isSkip = 0  # if errors, set to true (1) to skip this record
@@ -457,15 +464,27 @@ def parseFiles( ):
 			qcDict['mgi_no'].append('%s : %s' % (mgiID, line))
 			#print '%s MARKER NOT OFFICIAL in strain file: %s' % (mgiID, strain)
 			isSkip = 1
-	    if not isSkip:	    
-		if mgiID not in mgiIDsInInput:
-		    mgiIDsInInput[mgiID] = set()
-		mgiIDsInInput[mgiID].add(mgpID)
+	    
+	    if not isSkip:
+		strainMarkerObject = StrainMarker() # default to a new one
+	        if mgiID not in strainMarkerDict:
+		    strainMarkerObject.markerID = mgiID
+		    strainMarkerObject.mgpIDs.add(mgpID)
+		else:
+		    strainMarkerObject = strainMarkerDict[mgiID]
+                    strainMarkerObject.mgpIDs.add(mgpID)
+		strainMarkerDict[mgiID] =  strainMarkerObject
 
 	    line = fpIn.readline()
+        # Add the final strain line - where? we are in a while loop ...
 
-	# Add the final strain file
-        qcDict['mgi_mgp'].append(mgiIDsInInput)
+	# copy strainMarker objects from strainMarkerDict to strainMarkerInput
+	for mgiID in strainMarkerDict:
+	    strainMarkerInput[strain].append(strainMarkerDict[mgiID])
+
+	# add to the qcDict
+        qcDict['mgi_mgp'].append(strainMarkerInput)
+
     return 0
 
 # end parseFiles() -------------------------------------
@@ -475,18 +494,25 @@ def writeBcp():
     # Assumes: file descriptors have been initialized
     # Effects: writes to the file system
     # Throws: Nothing
-    mgiMgpList = qcDict['mgi_mgp']
-    for idsByStrainDict in mgiMgpList: # process each strain-specific dict
-        for mgiID in idsByStrainDict: # for each id in this strain-specific dict
-	    if len(idsByStrainDict[mgiID]) > 1:
-		print 'writeBcp: mgiID: %s has > 1 MGP ID' % mgiID
-		continue  # these have been reported
-	    else:
-		mpID = list(idsByStrainDict[mgiID])[0]
-  	    print 'writeBcp mgiID: %s mpgID: %s' % (mgiID, mpID)
+    strainMarkerInputList = qcDict['mgi_mgp']
+    for strainMarkerInputDict in strainMarkerInputList:
+        for strain in strainMarkerInputDict:
+            strainMarkerObjectsList = strainMarkerInputDict[strain]
+            for strainMarkerObject in strainMarkerObjectsList:
+                mgpList = list(strainMarkerObject.mgpIDs) # get the list of mgp IDs
+                if strainMarkerObject.markerID != '' and len(mgpList) > 1:
+		    continue  # these were reported
+	        # otherwise write out to bcp file
+		mgiID = strainMarkerObject.markerID 
+		    #for mgpID in mgpList:
+			# write out to bcp files one per mgpID, there will be one mgpID for all but the strain markers
+			# with no canonical gene
+	#START HERE: 4/13/18 5:318 pm
+  	    #print 'writeBcp mgiID: %s mpgID: %s' % (mgiID, mpID)
     return 0
 
 # end writeBcp() ---------------------------------------------------
+
 def writeCuratorLog():
     # Purpose: writes QC errors to the curator log
     # Returns: 1 if error, else 0
@@ -500,17 +526,19 @@ def writeCuratorLog():
     #
     count = 0
     multiList = []
-    mgiMgpList = qcDict['mgi_mgp']
-    for idsByStrainDict in mgiMgpList: # process each strain-specific dict
-	for mgiID in idsByStrainDict: # for each id in this strain-specific dict
+    strainMarkerInputList = qcDict['mgi_mgp']
+    for strainMarkerInputDict in strainMarkerInputList:
+	for strain in strainMarkerInputDict:
+	    print 'strain: %s' % strain
+	    strainMarkerObjectsList = strainMarkerInputDict[strain]
+	    for strainMarkerObject in strainMarkerObjectsList:
+		mgpList = list(strainMarkerObject.mgpIDs) # get the list of mgp IDs
+		#print 'strainMarkerObject.markerID: %s mgpList: %s' % (strainMarkerObject.markerID, mgpList)
+		if strainMarkerObject.markerID != '' and len(mgpList) > 1:  # if > 1 ID, report
+		    #print 'mgpList: %s' % mgpList
+		    count += 1
+		    multiList.append('%s: %s' % (strainMarkerObject.markerID, string.join(mgpList, ', ')))
 
-	    # ignore the empty string mgiID - these are strain markers with no
-	    # marker, this dict is used for creating bcp files
-	    if mgiID != '' and len(idsByStrainDict[mgiID]) > 1: # if > 1 ID, report
-		mgpList = list(idsByStrainDict[mgiID]) # get the list of IDs
-		count +=1
-		multiList.append('%s: %s' % (mgiID, string.join(mgpList, ', ')))
-	
     # if we have multiple mpg IDs/marker within a strain, report
     if len(multiList):
 	msg = messageMap['mgi_mgp']
@@ -518,8 +546,6 @@ def writeCuratorLog():
 	fpLogCur.write('-' * 80 + CRT)
 	fpLogCur.write('%s%s' % (string.join(multiList, CRT), CRT))
 	fpLogCur.write('Total: %s%s%s' % (count, CRT, CRT))
-    # remove from the dict for general processing below
-    #qcDict.pop('mgi_mgp')
 
     #
     # special handling for unresolved biotypes
@@ -533,16 +559,13 @@ def writeCuratorLog():
         for b in biotypeDict: 
     	    fpLogCur.write('%s: %s%s' % (b, biotypeDict[b], CRT))
 	fpLogCur.write('Total: %s%s%s' % (len(biotypeDict), CRT, CRT))
-    # removed from the dict for general processing below
-    #qcDict.pop('biotype_u')
 
     #
     #  process remaining QC, we have removed the special handling cases from qcDict
     #
     for key in qcDict:
 	if  key in ('mgi_mgp', 'biotype_u'):
-	    continue    # we already processed these above and they are needed for 
-			# writeBcp()
+	    continue    # we already processed these above, mgi_mgp needed by writeBcp() 
 
         qcList = qcDict[key]
 	if qcList == []:
