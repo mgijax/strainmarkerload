@@ -353,23 +353,26 @@ def parseFiles( ):
     global qcDict
 
     inputFileList = string.split(inputFileString, ' ')
-    first = 1
+    #first = 1
     for file in inputFileList:
         file = file.strip() # in case extra spaces btwn filenames in config
 	inputFile = '%s/%s.txt' % (infileDir, file)
    	print 'inputFile: %s' % inputFile
         fpIn = open(inputFile, 'r')
+
+	# strain is the first line in the file
         strain = string.strip(fpIn.readline())
+
 	# resolve strain with translation lookup
 	if strain not in strainTranslationLookup:
 	    qcDict['strain_u'].append(strain)
 	    continue 
         
         # add the last strainMarkerInput strain file to the qcDict
-        if first == 0:
-           qcDict['mgi_mgp'].append(strainMarkerInput)
-        if first == 1:
-            first = 0
+        #if first == 0:
+        #   qcDict['mgi_mgp'].append(strainMarkerInput)
+        #if first == 1:
+        #    first = 0
 
 	# build this as we parse each file - adding mgpIDs to strainMarkerObject if mgiID
 	# found > 1 in file
@@ -378,8 +381,9 @@ def parseFiles( ):
 	# after file parsed copy the strainMarkerObjects from strainMarkerDict to this mapping by strain
 	strainMarkerInput = {} 		# {strain: list of strainMarkerObjects, ...}
 	strainMarkerInput[strain] = []	# initialize 
-	line = fpIn.readline()
-	while line:
+
+	# iterate thru lines in this strain file
+	for line in fpIn.readlines():
 	    isSkip = 0  # if errors, set to true (1) to skip this record
 	    #print 'line: %s' % line
 	    tokens = line.split('\t')
@@ -474,9 +478,6 @@ def parseFiles( ):
 		    strainMarkerObject = strainMarkerDict[mgiID]
                     strainMarkerObject.mgpIDs.add(mgpID)
 		strainMarkerDict[mgiID] =  strainMarkerObject
-
-	    line = fpIn.readline()
-        # Add the final strain line - where? we are in a while loop ...
 
 	# copy strainMarker objects from strainMarkerDict to strainMarkerInput
 	for mgiID in strainMarkerDict:
