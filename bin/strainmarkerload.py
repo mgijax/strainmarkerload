@@ -368,12 +368,6 @@ def parseFiles( ):
 	    qcDict['strain_u'].append(strain)
 	    continue 
         
-        # add the last strainMarkerInput strain file to the qcDict
-        #if first == 0:
-        #   qcDict['mgi_mgp'].append(strainMarkerInput)
-        #if first == 1:
-        #    first = 0
-
 	# build this as we parse each file - adding mgpIDs to strainMarkerObject if mgiID
 	# found > 1 in file
 	strainMarkerDict = {}   # {mgiID:strainMarkerObject, ...}
@@ -479,11 +473,11 @@ def parseFiles( ):
                     strainMarkerObject.mgpIDs.add(mgpID)
 		strainMarkerDict[mgiID] =  strainMarkerObject
 
-	# copy strainMarker objects from strainMarkerDict to strainMarkerInput
+	# copy strainMarker objects from strainMarkerDict(by MGI ID) to strainMarkerInput (By strain)
 	for mgiID in strainMarkerDict:
 	    strainMarkerInput[strain].append(strainMarkerDict[mgiID])
 
-	# add to the qcDict
+	# add this strain to the qcDict
         qcDict['mgi_mgp'].append(strainMarkerInput)
 
     return 0
