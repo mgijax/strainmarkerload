@@ -1,0 +1,7 @@
+TAG: strainmarkerload-6-0-13-1
+DATE: 04/17/2018
+STAFF: sc
+CHANGES: TR12734 GF project
+1) new product with basics, MGP QC, MGP bcp creation
+   No B6 yet
+   not delete reload yet or creation of genemodelload files
