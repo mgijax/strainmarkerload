@@ -21,6 +21,7 @@
 #
 #       1. MRK_StrainMarker.bcp
 #	2. ACC_Accession.bcp
+#	3. ACC_AccessionReference.bcp
 #
 #  Exit Codes:
 #
@@ -66,6 +67,7 @@ import re
 import db
 import mgi_utils
 import loadlib
+import accessionlib
 
 #
 #  CONSTANTS
@@ -75,6 +77,7 @@ CRT = '\n'
 DATE = mgi_utils.date("%m/%d/%Y")
 USAGE='strainmarkerload.py'
 
+loaddate = loadlib.loaddate
 #
 #  GLOBALS
 #
@@ -86,6 +89,15 @@ QC_ONLY = os.environ['QC_ONLY']
 
 # min number of records expected
 MIN_RECORDS = int(os.environ['MIN_RECORDS'])
+
+# MGP logicalDB Name
+logicalDBKey = 209
+
+# MRK_StrainMarker MGI Type
+mgiTypeKey = 44
+
+# if true do not delete/reload
+isFatal = 0
 
 # input
 infileDir = os.environ['INPUTDIR']
@@ -99,16 +111,20 @@ outputDir = os.environ['OUTPUTDIR']
 smBcpFile =   os.environ['SM_BCP_FILE']
 strainMarkerFile = '%s/%s' % (outputDir, smBcpFile)
 fpStrainMarkerFile = ''
+
 accBcpFile = os.environ['ACC_BCP_FILE']
 accFile = '%s/%s' % (outputDir, accBcpFile)
 fpAccFile = ''
+accRefBcpFile = os.environ['ACC_REF_BCP_FILE']
+accRefFile = '%s/%s' % (outputDir, accRefBcpFile)
+fpAccRefFile = ''
 
 # QC reporting data structures
 qcDict = {} 
 messageMap = {}
 
 # Lookups
-strainTranslationLookup = {} # {badName: _Marker_key, ...}
+strainTranslationLookup = {} # {badName: _Strain_key, ...}
 markerLookup = {}            # {MGI ID: Marker ...}
 biotypeLookup = []           # lookup raw biotypes from the database
 
@@ -116,7 +132,7 @@ biotypeLookup = []           # lookup raw biotypes from the database
 loadedCt = 0
 
 # the MGP Strain Marker reference key for J:259852
-mgpRefsKey = 282407
+refsKey = 282407
 
 # the MGI B6 Strain Marker reference key for J:260092
 b6RefsKey =  282660
@@ -133,6 +149,11 @@ bcpin = '%s/bin/bcpin.csh' % os.environ['PG_DBUTILS']
 server = os.environ['MGD_DBSERVER']
 database = os.environ['MGD_DBNAME']
 strainmarker_table = 'MRK_StrainMarker'
+
+# DEBUG while developing
+fileCount = 0
+loadCount = 0
+skipCount = 0
 
 class Marker:
     # Is: data object for a marker
@@ -157,11 +178,13 @@ class StrainMarker:
     #
     def __init__ (self):
         # Purpose: constructor
-	self.markerID = None
+	self.markerID = ''
+	self.markerKey = ''
+	self.strainKey = ''
 	self.mgpIDs = set()
         
     def toString(self):
-        return '%s, %s' % (self.mgiID, self.mgpIDs)
+        return '%s, %s, %s, %s' % (self.mgiID, self.markerKey, self.strainKey, self.mgpIDs)
 # end class StrainMarker ----------------------------
 
 def checkArgs ():
@@ -221,36 +244,39 @@ def init():
     #
     results = db.sql('''select max(_Accession_key) + 1 as nextAccKey
 	    from ACC_Accession''', 'auto')
-    nextAcc = results[0]['nextAccKey']
+    nextAccKey = results[0]['nextAccKey']
 
     # load qcDict with keys
-    qcDict['chr'] = []       # chr is missing 
-    qcDict['start'] = []     # startCoordinate is missing 
-    qcDict['end'] = []       # endCoordinate is missing 
-    qcDict['strand'] = []    # strand is missing 
-    qcDict['biotype_m'] = [] # biotype is missing
-    qcDict['biotype_u'] = {} # biotype unresolved {biotype:count}
-    qcDict['strain_u'] = []  # strain unresolved
-    qcDict['mgp'] = []       # mgp is missing
-    qcDict['mgi_u'] = []     # marker ID unresolved
-    qcDict['mgi_s'] = []     # marker ID secondary
-    qcDict['mgi_no'] = []    # marker ID not official
+    qcDict['chr'] = []       # chr is missing, report/skip 
+    qcDict['start'] = []     # startCoordinate is missing, report/skip
+    qcDict['end'] = []       # endCoordinate is missing, report/skip
+    qcDict['start/end'] = [] # start > end, report/skip
+    qcDict['strand'] = []    # strand is missing, report/skip
+    qcDict['biotype_m'] = [] # biotype is missing, report/skip
+    qcDict['biotype_u'] = {} # biotype unresolved {biotype:count}, report/skip
+    qcDict['strain_u'] = []  # strain unresolved, fatal
+    qcDict['mgp'] = []       # mgp is missing, report/skip
+    qcDict['mgi_u'] = []     # marker ID unresolved, report create strain marker with null marker
+    qcDict['mgi_s'] = []     # marker ID secondary, report, load
+    qcDict['mgi_no'] = []    # marker ID not official, report, skip
     qcDict['mgi_mgp'] = []   # list of {mgiID: ([set of mpIDs]), ...}, one for each strain file
-			     # used to a) determine multiple MGP IDs (within a given strain) per marker
+			     # used to a) determine multiple MGP IDs (within a given strain) per marker, report/skip
 			     # b) write out to bcp files
 
-    messageMap['chr'] = 'Chromosome missing from input'
-    messageMap['start'] = 'Start Coordinate missing from input' 
-    messageMap['end'] = 'End Coordinate missing from input'
-    messageMap['strand'] = 'Strain missing from input'
-    messageMap['biotype_m'] = 'Biotype missing from input'
-    messageMap['biotype_u'] = 'Biotype from input unresolved'
-    messageMap['strain_u'] = 'Strain from input unresolved'
-    messageMap['mgp'] = 'MGP ID missing from input'
-    messageMap['mgi_u'] = 'Marker from input unresolved'
-    messageMap['mgi_s'] = 'Marker from input is secondary ID'
-    messageMap['mgi_no'] = 'Marker from input is not official'
-    messageMap['mgi_mgp'] = 'Markers from input with > 1 Strain specific MGP ID'  # when reporting multis. 
+    messageMap['chr'] = 'Chromosome missing from input, record(s)s skipped'
+    messageMap['start'] = 'Start Coordinate missing from input, record(s) skipped' 
+    messageMap['end'] = 'End Coordinate missing from input, record(s) skipped'
+    messageMap['start/end'] = 'Start Coordinate > End Coordinate, record(s) skipped'
+    messageMap['strand'] = 'Strand missing from input, record(s) skipped'
+    messageMap['biotype_m'] = 'Biotype missing from input, record(s) skipped'
+    messageMap['biotype_u'] = 'Biotype from input unresolved, record(s) skipped'
+    messageMap['strain_u'] = 'Strain from input unresolved, load fails'
+    messageMap['mgp'] = 'MGP ID missing from input, record(s) skipped'
+    messageMap['mgi_u'] = 'Marker from input unresolved, strain marker created with null marker'
+    messageMap['mgi_s'] = 'Marker from input is secondary ID, strain marker created'
+    messageMap['mgi_no'] = 'Marker from input is not official, records(s) skipped'
+    messageMap['mgi_mgp'] = 'Markers from input with > 1 Strain specific MGP ID, record(s) skipped'  # when reporting multis. 
+
     #
     # create lookups
     #
@@ -260,9 +286,7 @@ def init():
 	from MGI_Translation
 	where _TranslationType_key = 1021''', 'auto')
     for r in results:
-	mgpStrain = r['badName']
-	strainKey = r['strainKey']
-	strainTranslationLookup[mgpStrain] = strainKey
+	strainTranslationLookup[r['badName']] = r['strainKey']
 
     # load lookup of all marker MGI IDs
     results = db.sql('''select m._Marker_key, m.symbol, s.status as markerStatus,
@@ -304,8 +328,7 @@ def openFiles ():
     # Effects: Sets global variables, exits if a file can't be opened, 
     #  creates files in the file system
 
-    global fpStrainMarkerFile, fpAccFile
-    global fpLogCur
+    global fpStrainMarkerFile, fpAccFile, fpAccRefFile, fpLogCur
 
     try:
         fpStrainMarkerFile  = open(strainMarkerFile, 'w')
@@ -315,8 +338,14 @@ def openFiles ():
     try:
         fpAccFile  = open(accFile, 'w')
     except:
-        print 'Cannot open Accession BCP file: %s' % accFile
+        print 'Cannot open ACC_Accession bcp  file: %s' % accFile
         sys.exit(1)
+    try:
+        fpAccRefFile  = open(accRefFile, 'w')
+    except:
+        print 'Cannot open ACC_AccessionReference bcp file: %s' % accRefFile
+        sys.exit(1)
+
     try:
 	fpLogCur = open(curLog, 'a')
     except:
@@ -333,9 +362,11 @@ def closeFiles ():
     # Assumes: all file descriptors were initialized
     # Effects: Nothing
     # Throws: Nothing
-
+    global fpStrainMarkerFile, fpAccFile, fpLogCur
     try:
 	fpStrainMarkerFile.close()
+	fpAccFile.close()
+        fpAccRefFile.close()
 	fpLogCur.close()
     except:
 	return 1
@@ -350,10 +381,10 @@ def parseFiles( ):
     # Effects: sets global variables, writes to the file system
     # Throws: Nothing
    
-    global qcDict
+    global qcDict, fileCount, loadCount, skipCount
 
     inputFileList = string.split(inputFileString, ' ')
-    #first = 1
+    
     for file in inputFileList:
         file = file.strip() # in case extra spaces btwn filenames in config
 	inputFile = '%s/%s.txt' % (infileDir, file)
@@ -367,7 +398,9 @@ def parseFiles( ):
 	if strain not in strainTranslationLookup:
 	    qcDict['strain_u'].append(strain)
 	    continue 
-        
+	# get the strain key
+        strainKey = strainTranslationLookup[strain] 
+	print 'strain: %s strainKey: %s' % (strain, strainKey)
 	# build this as we parse each file - adding mgpIDs to strainMarkerObject if mgiID
 	# found > 1 in file
 	strainMarkerDict = {}   # {mgiID:strainMarkerObject, ...}
@@ -376,8 +409,13 @@ def parseFiles( ):
 	strainMarkerInput = {} 		# {strain: list of strainMarkerObjects, ...}
 	strainMarkerInput[strain] = []	# initialize 
 
+	fileCount = 0
+        loadCount = 0
+        skipCount = 0
+
 	# iterate thru lines in this strain file
 	for line in fpIn.readlines():
+	    fileCount += 1
 	    isSkip = 0  # if errors, set to true (1) to skip this record
 	    #print 'line: %s' % line
 	    tokens = line.split('\t')
@@ -408,6 +446,7 @@ def parseFiles( ):
 		elif t.find('biotype=') != -1:
 		    biotype = t.split('=')[1]
 	    #print 'mgpID: %s mgiID: %s biotype: %s' % (mgpID, mgiID, biotype)
+	    print 'start: "%s" end: "%s"' % (start, end)
 	    if chr == '':
 		qcDict['chr'].append(line)
 		isSkip = 1
@@ -416,6 +455,9 @@ def parseFiles( ):
 		isSkip = 1
   	    if end == '':
 		qcDict['end'].append(line)
+		isSkip = 1
+	    if start != '' and end != '' and (int(start) > int(end)):
+		qcDict['start/end'].append(line)
 		isSkip = 1
 	    if strand == '':
 		qcDict['strand'].append(line)
@@ -426,20 +468,15 @@ def parseFiles( ):
 	    if mgpID == '':
 		qcDict['mgp'].append(line)
 		isSkip = 1
+
             #  check that biotype is in the database
             if biotype.lower().strip() not in biotypeLookup:
 		if  biotype not in qcDict['biotype_u']:     
 		    qcDict['biotype_u'][biotype] = 1
 		else:
 		    qcDict['biotype_u'][biotype] += 1
-                #print '%s BIOTYPE NOT IN MGI: %s' %(mgpID, biotype)
-# UNCOMMENT THIS AFTER DEV!!
 		isSkip = 1
 
-	    # resolve strain with translation lookup
-	    if strain not in strainTranslationLookup:
-		qcDict['strain_u'].append(strain)
-		isSkip = 1
 	    # Resolve MGI ID 
 	    if mgiID != '':
 		if mgiID not in markerLookup:
@@ -448,7 +485,7 @@ def parseFiles( ):
 		    isSkip = 1
 		else:
 		    marker = markerLookup[mgiID]
-		    markerKey = marker.markerKey # load official markers
+		    markerKey = marker.markerKey 
 		    
 		    # not a preferred ID (secondary ID) - report and load
 		    if marker.markerPreferred != 1:
@@ -462,11 +499,15 @@ def parseFiles( ):
 			qcDict['mgi_no'].append('%s : %s' % (mgiID, line))
 			#print '%s MARKER NOT OFFICIAL in strain file: %s' % (mgiID, strain)
 			isSkip = 1
-	    
+	    if isSkip:
+		skipCount += 1
 	    if not isSkip:
+		loadCount += 1
 		strainMarkerObject = StrainMarker() # default to a new one
 	        if mgiID not in strainMarkerDict:
 		    strainMarkerObject.markerID = mgiID
+		    strainMarkerObject.markerKey = markerKey
+		    strainMarkerObject.strainKey = strainKey
 		    strainMarkerObject.mgpIDs.add(mgpID)
 		else:
 		    strainMarkerObject = strainMarkerDict[mgiID]
@@ -479,16 +520,19 @@ def parseFiles( ):
 
 	# add this strain to the qcDict
         qcDict['mgi_mgp'].append(strainMarkerInput)
-
     return 0
 
 # end parseFiles() -------------------------------------
-def writeBcp():
-    # Purpose: writes to BCP files if there are no errors
+
+def writeOutput():
+    # Purpose: writes to Accession, AccessionReference & StrainMarker BCP file if there are no errors
     # Returns: 1 if error, else 0
     # Assumes: file descriptors have been initialized
     # Effects: writes to the file system
     # Throws: Nothing
+
+    global nextSMKey, nextAccKey, skipCount
+
     strainMarkerInputList = qcDict['mgi_mgp']
     for strainMarkerInputDict in strainMarkerInputList:
         for strain in strainMarkerInputDict:
@@ -496,17 +540,30 @@ def writeBcp():
             for strainMarkerObject in strainMarkerObjectsList:
                 mgpList = list(strainMarkerObject.mgpIDs) # get the list of mgp IDs
                 if strainMarkerObject.markerID != '' and len(mgpList) > 1:
+		    skipCount += len(mgpList)
 		    continue  # these were reported
 	        # otherwise write out to bcp file
 		mgiID = strainMarkerObject.markerID 
-		    #for mgpID in mgpList:
-			# write out to bcp files one per mgpID, there will be one mgpID for all but the strain markers
-			# with no canonical gene
-	#START HERE: 4/13/18 5:318 pm
-  	    #print 'writeBcp mgiID: %s mpgID: %s' % (mgiID, mpID)
+		markerKey = strainMarkerObject.markerKey
+		strainKey = strainMarkerObject.strainKey
+		for mgpID in mgpList: # One except for the no marker
+		    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, strainKey, TAB, markerKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+
+		    prefixPart, numericPart = accessionlib.split_accnum(mgpID)
+
+		    fpAccFile.write('%s\t%s\t%s\t%s\t%s|%d|%d|0|1\t%s\t%s\t%s\t%s\n' \
+		    % (nextAccKey, mgpID, prefixPart, numericPart, logicalDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
+		    fpAccRefFile.write('%s\t%s\t%s\t%s\t%s\t%s\n' \
+		    % (nextAccKey, refsKey, userKey, userKey, loaddate, loaddate))
+		    nextSMKey += 1
+		    nextAccKey += 1
+    print 'fileCount: %s' % fileCount
+    print 'loadCount: %s' % loadCount
+    print 'skipCount: %s' % skipCount
+   
     return 0
 
-# end writeBcp() ---------------------------------------------------
+# end writeOutput() ---------------------------------------------------
 
 def writeCuratorLog():
     # Purpose: writes QC errors to the curator log
@@ -515,10 +572,16 @@ def writeCuratorLog():
     # Effects: writes to the file system
     # Throws: Nothing
 
+    global isFatal
     #
     # special handling for MGI IDs mapped to multiple IDs for a given strain. 
     # Each dict in mgiMgpList represents the ids of a strain 
     #
+    
+    # unresolved strain is fatal
+    if len(qcDict['strain_u']):
+	isFatal = 1
+	
     count = 0
     multiList = []
     strainMarkerInputList = qcDict['mgi_mgp']
@@ -560,7 +623,7 @@ def writeCuratorLog():
     #
     for key in qcDict:
 	if  key in ('mgi_mgp', 'biotype_u'):
-	    continue    # we already processed these above, mgi_mgp needed by writeBcp() 
+	    continue    # we already processed these above, mgi_mgp needed by writeOutput() 
 
         qcList = qcDict[key]
 	if qcList == []:
@@ -570,6 +633,9 @@ def writeCuratorLog():
 	fpLogCur.write('-' * 80 + CRT)
 	fpLogCur.write(string.join(qcList, CRT))
 	fpLogCur.write('%sTotal: %s%s%s' % (CRT, len(qcList), CRT, CRT))
+    
+    if isFatal:
+	return 1
 
     return 0
 
@@ -635,15 +701,15 @@ if parseFiles() != 0:
 print '%s' % mgi_utils.date()
 print 'running writeCuratorLog'
 if writeCuratorLog() != 0:
-    print 'Writing the Curator Log failed'
+    print 'Fatal error writing Curator Log - see %s' % curLog
     closeFiles()
     sys.exit(1)
 
 # write to the bcp files
 print '%s' % mgi_utils.date()
-print 'running writeBcp'
-if writeBcp() != 0:
-    print 'Writing to the BCP Files failed'
+print 'running writeOutput'
+if writeOutput() != 0:
+    print 'Writing to the Output Files failed'
     closeFiles()
     sys.exit(1)
 
