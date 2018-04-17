@@ -132,7 +132,7 @@ biotypeLookup = []           # lookup raw biotypes from the database
 loadedCt = 0
 
 # the MGP Strain Marker reference key for J:259852
-refsKey = 282407
+mgpRefsKey = 282407
 
 # the MGI B6 Strain Marker reference key for J:260092
 b6RefsKey =  282660
@@ -149,6 +149,8 @@ bcpin = '%s/bin/bcpin.csh' % os.environ['PG_DBUTILS']
 server = os.environ['MGD_DBSERVER']
 database = os.environ['MGD_DBNAME']
 strainmarker_table = 'MRK_StrainMarker'
+acc_table = 'ACC_Accession'
+accref_table = 'ACC_AccessionReference'
 
 # DEBUG while developing
 fileCount = 0
@@ -469,8 +471,9 @@ def parseFiles( ):
 		qcDict['mgp'].append(line)
 		isSkip = 1
 
-            #  check that biotype is in the database
-            if biotype.lower().strip() not in biotypeLookup:
+            # check that biotype is in the database
+	    # don't report missing biotype as unresolved
+            if biotype.lower().strip() != '' and biotype.lower().strip() not in biotypeLookup:
 		if  biotype not in qcDict['biotype_u']:     
 		    qcDict['biotype_u'][biotype] = 1
 		else:
@@ -554,7 +557,7 @@ def writeOutput():
 		    fpAccFile.write('%s\t%s\t%s\t%s\t%s|%d|%d|0|1\t%s\t%s\t%s\t%s\n' \
 		    % (nextAccKey, mgpID, prefixPart, numericPart, logicalDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
 		    fpAccRefFile.write('%s\t%s\t%s\t%s\t%s\t%s\n' \
-		    % (nextAccKey, refsKey, userKey, userKey, loaddate, loaddate))
+		    % (nextAccKey, mgpRefsKey, userKey, userKey, loaddate, loaddate))
 		    nextSMKey += 1
 		    nextAccKey += 1
     print 'fileCount: %s' % fileCount
@@ -619,12 +622,10 @@ def writeCuratorLog():
 	fpLogCur.write('Total: %s%s%s' % (len(biotypeDict), CRT, CRT))
 
     #
-    #  process remaining QC, we have removed the special handling cases from qcDict
+    #  process remaining QC in order specified by richard
     #
-    for key in qcDict:
-	if  key in ('mgi_mgp', 'biotype_u'):
-	    continue    # we already processed these above, mgi_mgp needed by writeOutput() 
-
+    order = ['strain_u', 'biotype_m', 'mgp', 'chr', 'start', 'end', 'strand', 'start/end', 'mgi_no', 'mgi_u', 'mgi_s']
+    for key in order:
         qcList = qcDict[key]
 	if qcList == []:
 	    continue
@@ -648,14 +649,24 @@ def doDeletes():
     # Effects: queries a database, writes number deleted to curation log
     # Throws: Nothing
 
-    results = db.sql('''select count(*) as deleteCt 
-	from MGI_Relationship 
-	where _CreatedBy_key = %s ''' % userKey, 'auto')
+    db.sql('''select a._Object_key as _StrainMarker_key
+	into temporary table toDelete
+	from ACC_Accession a, ACC_AccessionReference ar
+	where a._Accession_key = ar._Accession_key
+	and ar._Refs_key = 282407''', None)
+    db.sql('''create index idx1 on toDelete(_StrainMarker_key)''', 'auto')
+
+    results = db.sql('''select count(*) as deleteCt
+	from toDelete''', 'auto')
+
     deleteCt = 0
     for r in results:
 	deleteCt = r['deleteCt']
-    fpLogCur.write('\nDeleting %s Relationships\n\n' % deleteCt)
-    db.sql('''delete from MGI_Relationship where _CreatedBy_key = %s ''' % userKey, None)
+
+    fpLogCur.write('\nDeleting %s MGP Strain Markers\n\n' % deleteCt)
+    db.sql('''delete from MRK_StrainMarker sm
+	using toDelete d
+	where d._StrainMarker_key = sm._StrainMarker_key''' % userKey, None)
     db.commit()
     db.useOneConnection(0)
 
@@ -670,9 +681,23 @@ def doBcp():
     # Effects: sets global variables, writes to the file system
     # Throws: Nothing
 
-    bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, table, outputDir, bcpFile)
+    bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, strain_markertable, outputDir, strainMarkerFile)
     rc = os.system(bcpCmd)
-    return rc
+    if rc:
+	return rc
+
+    bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, acc_table, outputDir, accFile)
+    rc = os.system(bcpCmd)
+    if rc:
+	return rc
+
+    bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, accref_table, outputDir, accRefFile)
+    rc = os.system(bcpCmd)
+    if rc:
+        return rc
+
+    return 0
+
 
 # end doBcp() -----------------------------------------
 
