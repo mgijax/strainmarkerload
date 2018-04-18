@@ -87,6 +87,9 @@ DEBUG = 0
 # true if we want to run QC and not load relationships
 QC_ONLY = os.environ['QC_ONLY']
 
+# if true only load B6 strain markers
+loadOnlyB6  = os.environ['B6_ONLY']
+
 # min number of records expected
 MIN_RECORDS = int(os.environ['MIN_RECORDS'])
 
@@ -126,6 +129,7 @@ messageMap = {}
 # Lookups
 strainTranslationLookup = {} # {badName: _Strain_key, ...}
 markerLookup = {}            # {MGI ID: Marker ...}
+chrLookup = {}		     # {Mouse, Laboratory chr: chrKey, ...}
 biotypeLookup = []           # lookup raw biotypes from the database
 
 # count of strain markers that will be loaded
@@ -136,6 +140,9 @@ mgpRefsKey = 282407
 
 # the MGI B6 Strain Marker reference key for J:260092
 b6RefsKey =  282660
+
+# the MGI C57BL/6J strain key
+b6StrainKey = 38048
 
 # strainmarkerload user key
 userKey = 1600
@@ -212,7 +219,7 @@ def init():
     # Effects: Sets global variables, exits if a file can't be opened,
     #  creates files in the file system, creates connection to a database
 
-    global nextSMKey, nextAccKey, strainTranslationLookup, markerLookup
+    global nextSMKey, nextAccKey, strainTranslationLookup, markerLookup, chrLookup
     global biotypeLookup, messageMap
    
     checkArgs()
@@ -249,7 +256,8 @@ def init():
     nextAccKey = results[0]['nextAccKey']
 
     # load qcDict with keys
-    qcDict['chr'] = []       # chr is missing, report/skip 
+    qcDict['chr_m'] = []     # chr is missing, report/skip 
+    qcDict['chr_u'] = []     # chromosome unresolved, report/skip
     qcDict['start'] = []     # startCoordinate is missing, report/skip
     qcDict['end'] = []       # endCoordinate is missing, report/skip
     qcDict['start/end'] = [] # start > end, report/skip
@@ -265,7 +273,8 @@ def init():
 			     # used to a) determine multiple MGP IDs (within a given strain) per marker, report/skip
 			     # b) write out to bcp files
 
-    messageMap['chr'] = 'Chromosome missing from input, record(s)s skipped'
+    messageMap['chr_m'] = 'Chromosome missing from input, record(s) skipped'
+    messageMap['chr_u'] = 'Chromosome from input unresolved, record(s) skipped'
     messageMap['start'] = 'Start Coordinate missing from input, record(s) skipped' 
     messageMap['end'] = 'End Coordinate missing from input, record(s) skipped'
     messageMap['start/end'] = 'Start Coordinate > End Coordinate, record(s) skipped'
@@ -309,6 +318,13 @@ def init():
 	m.markerPreferred = r['preferred']
 
 	markerLookup[m.markerID] = m
+    
+    # load lookup of mouse, laboratory chromosomes
+    results = db.sql('''select chromosome, _Chromosome_key
+	from MRK_Chromosome
+	where _Organism_key = 1''', 'auto')
+    for r in results:
+	chrLookup[r['chromosome']] = r['_Chromosome_key']
 
     # load lookup of rawbiotypes
     results = db.sql('''select distinct t.term
@@ -376,7 +392,7 @@ def closeFiles ():
 
 # end closeFiles() -------------------------------
 
-def parseFiles( ): 
+def parseMGPFiles( ): 
     # Purpose: parses input files looping, opening and closing
     # Returns: 1 if error, else 0
     # Assumes: output file descriptors have been initialized
@@ -450,8 +466,10 @@ def parseFiles( ):
 	    #print 'mgpID: %s mgiID: %s biotype: %s' % (mgpID, mgiID, biotype)
 	    print 'start: "%s" end: "%s"' % (start, end)
 	    if chr == '':
-		qcDict['chr'].append(line)
+		qcDict['chr_m'].append(line)
 		isSkip = 1
+	    if chr != '' and chr not in chrLookup:
+		qcDict['chr_u'].append(line)
 	    if start == '':
 		qcDict['start'].append(line)
 		isSkip = 1
@@ -525,9 +543,9 @@ def parseFiles( ):
         qcDict['mgi_mgp'].append(strainMarkerInput)
     return 0
 
-# end parseFiles() -------------------------------------
+# end parseMGPFiles() -------------------------------------
 
-def writeOutput():
+def writeMGPOutput():
     # Purpose: writes to Accession, AccessionReference & StrainMarker BCP file if there are no errors
     # Returns: 1 if error, else 0
     # Assumes: file descriptors have been initialized
@@ -550,7 +568,7 @@ def writeOutput():
 		markerKey = strainMarkerObject.markerKey
 		strainKey = strainMarkerObject.strainKey
 		for mgpID in mgpList: # One except for the no marker
-		    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, strainKey, TAB, markerKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+		    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, strainKey, TAB, markerKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
 		    prefixPart, numericPart = accessionlib.split_accnum(mgpID)
 
@@ -566,8 +584,30 @@ def writeOutput():
    
     return 0
 
-# end writeOutput() ---------------------------------------------------
+# end writeMGPOutput() ---------------------------------------------------
 
+def writeB6Output():
+    # Purpose: writes to Accession, AccessionReference & StrainMarker BCP file if there are no errors
+    # Returns: 1 if error, else 0
+    # Assumes: file descriptors have been initialized
+    # Effects: writes to the file system
+    # Throws: Nothing
+
+    global nextSMKey
+
+    results = db.sql('''select distinct _Marker_Key
+			from MRK_Location_Cache lc
+			where lc.provider in ('NCBI', 'Ensembl')''', 'auto')
+    print 'len(results): %s' % len(results)
+    for r in results:
+	markerKey = r['_Marker_key']
+	fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, b6StrainKey, TAB, markerKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+
+	nextSMKey += 1
+
+    return 0
+
+# end writeB6Output() ---------------------------------------------------
 def writeCuratorLog():
     # Purpose: writes QC errors to the curator log
     # Returns: 1 if error, else 0
@@ -624,7 +664,7 @@ def writeCuratorLog():
     #
     #  process remaining QC in order specified by richard
     #
-    order = ['strain_u', 'biotype_m', 'mgp', 'chr', 'start', 'end', 'strand', 'start/end', 'mgi_no', 'mgi_u', 'mgi_s']
+    order = ['strain_u', 'biotype_m', 'mgp', 'chr_u', 'chr_m', 'start', 'end', 'strand', 'start/end', 'mgi_no', 'mgi_u', 'mgi_s']
     for key in order:
         qcList = qcDict[key]
 	if qcList == []:
@@ -642,18 +682,18 @@ def writeCuratorLog():
 
 # end writeCuratorLog() -------------------------------
 
-def doDeletes():
+def doDeletes(refsKey):
     # Purpose: deletes all MGI_Relationships created by this load
     # Returns: 1 if error, else 0
     # Assumes:  database connection exists
     # Effects: queries a database, writes number deleted to curation log
     # Throws: Nothing
 
-    db.sql('''select a._Object_key as _StrainMarker_key
+    db.sql('''select _StrainMarker_key
 	into temporary table toDelete
-	from ACC_Accession a, ACC_AccessionReference ar
-	where a._Accession_key = ar._Accession_key
-	and ar._Refs_key = 282407''', None)
+	from MRK_Strain_Marker
+	where _Refs_key = %s''' % refsKey, None)
+
     db.sql('''create index idx1 on toDelete(_StrainMarker_key)''', 'auto')
 
     results = db.sql('''select count(*) as deleteCt
@@ -663,7 +703,7 @@ def doDeletes():
     for r in results:
 	deleteCt = r['deleteCt']
 
-    fpLogCur.write('\nDeleting %s MGP Strain Markers\n\n' % deleteCt)
+    fpLogCur.write('\nDeleting %s Strain Markers\n\n' % deleteCt)
     db.sql('''delete from MRK_StrainMarker sm
 	using toDelete d
 	where d._StrainMarker_key = sm._StrainMarker_key''' % userKey, None)
@@ -714,37 +754,55 @@ if init() != 0:
     closeFiles()
     sys.exit(1)
 
-# parse the input files
+# parse MGP input files, write MGP QC and write MGP BCP, unless we are only reloading B6
+if loadOnlyB6 == 'false':
+    print '%s' % mgi_utils.date()
+    print 'running parseMGPFiles'
+    if parseMGPFiles() != 0:
+	print 'Parsing MGP Files failed'
+	closeFiles()
+	sys.exit(1)
+
+    # write QC
+    print '%s' % mgi_utils.date()
+    print 'running writeCuratorLog'
+    if writeCuratorLog() != 0:
+	print 'Fatal error writing Curator Log - see %s' % curLog
+	closeFiles()
+	sys.exit(1)
+
+    # write MGP to the bcp files
+    print '%s' % mgi_utils.date()
+    print 'running writeMGPOutput'
+    if writeMGPOutput() != 0:
+	print 'Writing MGP Output Files failed'
+	closeFiles()
+	sys.exit(1)
+
 print '%s' % mgi_utils.date()
-print 'running parseFiles'
-if parseFiles() != 0:
-    print 'Parsing Files failed'
+print 'running writeB6Output'
+if writeB6Output () != 0:
+    print 'Writing B6 Output Files failed'
     closeFiles()
     sys.exit(1)
 
-# write QC
-print '%s' % mgi_utils.date()
-print 'running writeCuratorLog'
-if writeCuratorLog() != 0:
-    print 'Fatal error writing Curator Log - see %s' % curLog
-    closeFiles()
-    sys.exit(1)
+if QC_ONLY == 'false':
+    # delete existing B6 strain markers
+    print '%s' % mgi_utils.date()
+    print 'running doDeletes() B6'
+    if doDeletes(b6RefsKey) != 0:
+	print 'Deleting B6 failed'
+	sys.exit(1)
+    if not loadOnlyB6:
+	# delete existing MGP strain markers
+	print '%s' % mgi_utils.date()
+	print 'running doDeletes() MGP'
+	if doDeletes(mgpRefsKey) != 0:
+	    print 'Do Deletes failed'
+	    sys.exit(1)
 
-# write to the bcp files
-print '%s' % mgi_utils.date()
-print 'running writeOutput'
-if writeOutput() != 0:
-    print 'Writing to the Output Files failed'
-    closeFiles()
-    sys.exit(1)
+	
 
-#if QC_ONLY == 'false':
-#    # delete existing relationships
-#    print '%s' % mgi_utils.date()
-#    print 'running doDeletes()'
-#    if doDeletes() != 0:
-#	print 'Do Deletes failed'
-#	sys.exit(1)
 
 # close all output files
 print '%s' % mgi_utils.date()
