@@ -66,32 +66,37 @@ fi
 #
 # create 'cleansed' input files and put them in INPUTDIR - check for minimum size
 #
-cd ${INPUT_GFF_DIR}
-for dir in ${INPUT_DIR_LIST}
-do
-    echo ${dir}
-    # parse strain name and add to top of file
-    strain=`zcat ${dir}/*.gz | grep genome-version | cut -d' ' -f2 | cut -d_ -f1,2`
-    echo ${strain}
-    if [ -z "$strain" ]
-    then
-	echo "Load Failed: ${INPUTDIR}/${dir}.txt has missing 'genome-version'" | tee -a ${LOG_DIAG} ${LOG_CUR}
-        exit 1
-    fi
-    echo ${strain} > ${INPUTDIR}/${dir}.txt
-    # add only gene lines
-    zcat ${dir}/*.gz | grep 'ID=gene:' >> ${INPUTDIR}/${dir}.txt
-    count=`cat ${INPUTDIR}/${dir}.txt | wc -l`
-    count=$((count-1)) # remove the strain name line from the count
-    echo "count: $count"
-    echo "min_records: ${MIN_RECORDS}"
-    # check that for the minimum record count
-    if [ ${count} -lt ${MIN_RECORDS} ]
-    then
-        echo "Load Failed: ${INPUTDIR}/${dir}.txt has $count records which is less than the required ${MIN_RECORDS}" | tee -a ${LOG_DIAG} ${LOG_CUR}
-  	exit 1
-    fi
-done
+DOFILES=1
+if [ $DOFILES ]
+then
+    echo "Preprocessing input files" | tee -a ${LOG}
+    cd ${INPUT_GFF_DIR}
+    for dir in ${INPUT_DIR_LIST}
+    do
+	echo ${dir}
+	# parse strain name and add to top of file
+	strain=`zcat ${dir}/*.gz | grep genome-version | cut -d' ' -f2 | cut -d_ -f1,2`
+	echo ${strain}
+	if [ -z "$strain" ]
+	then
+	    echo "Load Failed: ${INPUTDIR}/${dir}.txt has missing 'genome-version'" | tee -a ${LOG_DIAG} ${LOG_CUR}
+	    exit 1
+	fi
+	echo ${strain} > ${INPUTDIR}/${dir}.txt
+	# add only gene lines
+	zcat ${dir}/*.gz | grep 'ID=gene:' >> ${INPUTDIR}/${dir}.txt
+	count=`cat ${INPUTDIR}/${dir}.txt | wc -l`
+	count=$((count-1)) # remove the strain name line from the count
+	echo "count: $count"
+	echo "min_records: ${MIN_RECORDS}"
+	# check that for the minimum record count
+	if [ ${count} -lt ${MIN_RECORDS} ]
+	then
+	    echo "Load Failed: ${INPUTDIR}/${dir}.txt has $count records which is less than the required ${MIN_RECORDS}" | tee -a ${LOG_DIAG} ${LOG_CUR}
+	    exit 1
+	fi
+    done
+fi
 
 #
 # createArchive including OUTPUTDIR, startLog, getConfigEnv
@@ -114,19 +119,6 @@ echo "Run strainmarkerload.py"  | tee -a ${LOG_DIAG}
 ${STRAINMARKERLOAD}/bin/strainmarkerload.py
 STAT=$?
 checkStatus ${STAT} "${STRAINMARKERLOAD}/bin/strainmarkerload.py"
-
-#
-# run association load
-#
-
-# set to full path for assocload
-CONFIG_LOAD=${STRAINMARKERLOAD}/assocload.config
-
-#echo "Running Strain Marker association load" >> ${LOG_DIAG}
-#echo "${ASSOCLOADER_SH} ${CONFIG_LOAD} ${JOBKEY}"
-#${ASSOCLOADER_SH} ${CONFIG_LOAD} ${JOBKEY}
-#STAT=$?
-#checkStatus ${STAT} "${ASSOCLOADER_SH} ${CONFIG_LOAD}"
 
 # run postload cleanup and email logs
 

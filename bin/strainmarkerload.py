@@ -111,6 +111,7 @@ curLog = os.getenv('LOG_CUR')
 
 # output bcp files
 outputDir = os.environ['OUTPUTDIR']
+
 smBcpFile =   os.environ['SM_BCP_FILE']
 strainMarkerFile = '%s/%s' % (outputDir, smBcpFile)
 fpStrainMarkerFile = ''
@@ -118,6 +119,7 @@ fpStrainMarkerFile = ''
 accBcpFile = os.environ['ACC_BCP_FILE']
 accFile = '%s/%s' % (outputDir, accBcpFile)
 fpAccFile = ''
+
 accRefBcpFile = os.environ['ACC_REF_BCP_FILE']
 accRefFile = '%s/%s' % (outputDir, accRefBcpFile)
 fpAccRefFile = ''
@@ -131,9 +133,6 @@ strainTranslationLookup = {} # {badName: _Strain_key, ...}
 markerLookup = {}            # {MGI ID: Marker ...}
 chrLookup = {}		     # {Mouse, Laboratory chr: chrKey, ...}
 biotypeLookup = []           # lookup raw biotypes from the database
-
-# count of strain markers that will be loaded
-loadedCt = 0
 
 # the MGP Strain Marker reference key for J:259852
 mgpRefsKey = 282407
@@ -159,10 +158,14 @@ strainmarker_table = 'MRK_StrainMarker'
 acc_table = 'ACC_Accession'
 accref_table = 'ACC_AccessionReference'
 
-# DEBUG while developing
-fileCount = 0
-loadCount = 0
-skipCount = 0
+# count of total strain markers that will be loaded
+totalLoadedCt = 0
+b6LoadCt = 0
+mgpFileCt = 0
+mgpLoadCt = 0
+mgpSkipCt = 0
+mgpNoMarkerCt = 0
+ctByStrain = {} # {strain: ct, ...}
 
 class Marker:
     # Is: data object for a marker
@@ -380,12 +383,11 @@ def closeFiles ():
     # Assumes: all file descriptors were initialized
     # Effects: Nothing
     # Throws: Nothing
-    global fpStrainMarkerFile, fpAccFile, fpLogCur
+    global fpStrainMarkerFile, fpAccFile
     try:
 	fpStrainMarkerFile.close()
 	fpAccFile.close()
         fpAccRefFile.close()
-	fpLogCur.close()
     except:
 	return 1
     return 0
@@ -399,11 +401,12 @@ def parseMGPFiles( ):
     # Effects: sets global variables, writes to the file system
     # Throws: Nothing
    
-    global qcDict, fileCount, loadCount, skipCount
+    global qcDict, mgpFileCt, mgpLoadCt, mgpSkipCt, ctByStrain, mgpNoMarkerCt
 
     inputFileList = string.split(inputFileString, ' ')
     
     for file in inputFileList:
+ 	recordCt = 0  # current number of records in this file
         file = file.strip() # in case extra spaces btwn filenames in config
 	inputFile = '%s/%s.txt' % (infileDir, file)
    	print 'inputFile: %s' % inputFile
@@ -427,13 +430,10 @@ def parseMGPFiles( ):
 	strainMarkerInput = {} 		# {strain: list of strainMarkerObjects, ...}
 	strainMarkerInput[strain] = []	# initialize 
 
-	fileCount = 0
-        loadCount = 0
-        skipCount = 0
-
 	# iterate thru lines in this strain file
 	for line in fpIn.readlines():
-	    fileCount += 1
+	    recordCt +=1
+	    mgpFileCt += 1
 	    isSkip = 0  # if errors, set to true (1) to skip this record
 	    #print 'line: %s' % line
 	    tokens = line.split('\t')
@@ -464,7 +464,7 @@ def parseMGPFiles( ):
 		elif t.find('biotype=') != -1:
 		    biotype = t.split('=')[1]
 	    #print 'mgpID: %s mgiID: %s biotype: %s' % (mgpID, mgiID, biotype)
-	    print 'start: "%s" end: "%s"' % (start, end)
+	    #print 'start: "%s" end: "%s"' % (start, end)
 	    if chr == '':
 		qcDict['chr_m'].append(line)
 		isSkip = 1
@@ -521,9 +521,12 @@ def parseMGPFiles( ):
 			#print '%s MARKER NOT OFFICIAL in strain file: %s' % (mgiID, strain)
 			isSkip = 1
 	    if isSkip:
-		skipCount += 1
+		mgpSkipCt += 1
 	    if not isSkip:
-		loadCount += 1
+		mgpLoadCt += 1
+		if markerKey == '': # count them
+		    mgpNoMarkerCt += 1
+
 		strainMarkerObject = StrainMarker() # default to a new one
 	        if mgiID not in strainMarkerDict:
 		    strainMarkerObject.markerID = mgiID
@@ -534,6 +537,8 @@ def parseMGPFiles( ):
 		    strainMarkerObject = strainMarkerDict[mgiID]
                     strainMarkerObject.mgpIDs.add(mgpID)
 		strainMarkerDict[mgiID] =  strainMarkerObject
+	ctByStrain[strain] =  recordCt
+	# ------------ end for line in file --------------------
 
 	# copy strainMarker objects from strainMarkerDict(by MGI ID) to strainMarkerInput (By strain)
 	for mgiID in strainMarkerDict:
@@ -552,7 +557,7 @@ def writeMGPOutput():
     # Effects: writes to the file system
     # Throws: Nothing
 
-    global nextSMKey, nextAccKey, skipCount
+    global nextSMKey, nextAccKey, mgpSkipCt, totalLoadedCt
 
     strainMarkerInputList = qcDict['mgi_mgp']
     for strainMarkerInputDict in strainMarkerInputList:
@@ -561,27 +566,25 @@ def writeMGPOutput():
             for strainMarkerObject in strainMarkerObjectsList:
                 mgpList = list(strainMarkerObject.mgpIDs) # get the list of mgp IDs
                 if strainMarkerObject.markerID != '' and len(mgpList) > 1:
-		    skipCount += len(mgpList)
+		    mgpSkipCt += len(mgpList)
 		    continue  # these were reported
 	        # otherwise write out to bcp file
 		mgiID = strainMarkerObject.markerID 
 		markerKey = strainMarkerObject.markerKey
 		strainKey = strainMarkerObject.strainKey
 		for mgpID in mgpList: # One except for the no marker
+		    totalLoadedCt += 1
 		    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, strainKey, TAB, markerKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
 		    prefixPart, numericPart = accessionlib.split_accnum(mgpID)
 
-		    fpAccFile.write('%s\t%s\t%s\t%s\t%s|%d|%d|0|1\t%s\t%s\t%s\t%s\n' \
-		    % (nextAccKey, mgpID, prefixPart, numericPart, logicalDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
-		    fpAccRefFile.write('%s\t%s\t%s\t%s\t%s\t%s\n' \
-		    % (nextAccKey, mgpRefsKey, userKey, userKey, loaddate, loaddate))
+		    fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
+		    % (nextAccKey, TAB, mgpID, TAB, prefixPart, TAB, numericPart, TAB, logicalDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+		    fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
+		    % (nextAccKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 		    nextSMKey += 1
 		    nextAccKey += 1
-    print 'fileCount: %s' % fileCount
-    print 'loadCount: %s' % loadCount
-    print 'skipCount: %s' % skipCount
-   
+
     return 0
 
 # end writeMGPOutput() ---------------------------------------------------
@@ -593,7 +596,7 @@ def writeB6Output():
     # Effects: writes to the file system
     # Throws: Nothing
 
-    global nextSMKey
+    global nextSMKey, totalLoadedCt, b6LoadCt
 
     results = db.sql('''select distinct _Marker_Key
 			from MRK_Location_Cache lc
@@ -601,13 +604,16 @@ def writeB6Output():
     print 'len(results): %s' % len(results)
     for r in results:
 	markerKey = r['_Marker_key']
+
 	fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, b6StrainKey, TAB, markerKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
 	nextSMKey += 1
-
+    totalLoadedCt += len(results)
+    b6LoadCt = len(results)
     return 0
 
 # end writeB6Output() ---------------------------------------------------
+
 def writeCuratorLog():
     # Purpose: writes QC errors to the curator log
     # Returns: 1 if error, else 0
@@ -615,7 +621,7 @@ def writeCuratorLog():
     # Effects: writes to the file system
     # Throws: Nothing
 
-    global isFatal
+    global isFatal, mgpLoadCt, mgpNoMarkerCt
     #
     # special handling for MGI IDs mapped to multiple IDs for a given strain. 
     # Each dict in mgiMgpList represents the ids of a strain 
@@ -626,11 +632,12 @@ def writeCuratorLog():
 	isFatal = 1
 	
     count = 0
+    mgpSkipped = 0
     multiList = []
     strainMarkerInputList = qcDict['mgi_mgp']
     for strainMarkerInputDict in strainMarkerInputList:
 	for strain in strainMarkerInputDict:
-	    print 'strain: %s' % strain
+	    #print 'strain: %s' % strain
 	    strainMarkerObjectsList = strainMarkerInputDict[strain]
 	    for strainMarkerObject in strainMarkerObjectsList:
 		mgpList = list(strainMarkerObject.mgpIDs) # get the list of mgp IDs
@@ -638,10 +645,17 @@ def writeCuratorLog():
 		if strainMarkerObject.markerID != '' and len(mgpList) > 1:  # if > 1 ID, report
 		    #print 'mgpList: %s' % mgpList
 		    count += 1
+
+		    # subtract from mgp no marker count if this strainmarker has
+		    # no marker
+		    if strainMarkerObject.markerKey == '': 
+			mgpNoMarkerCt = mgpNoMarkerCt - 1
+		    mgpSkipped += len(mgpList)
 		    multiList.append('%s: %s' % (strainMarkerObject.markerID, string.join(mgpList, ', ')))
 
     # if we have multiple mpg IDs/marker within a strain, report
     if len(multiList):
+	mgpLoadCt = mgpLoadCt - mgpSkipped # subtract multiples, won't load them
 	msg = messageMap['mgi_mgp']
 	fpLogCur.write('%s%s'% (msg,CRT))
 	fpLogCur.write('-' * 80 + CRT)
@@ -682,7 +696,7 @@ def writeCuratorLog():
 
 # end writeCuratorLog() -------------------------------
 
-def doDeletes(refsKey):
+def doDeletes(refsKeys):
     # Purpose: deletes all MGI_Relationships created by this load
     # Returns: 1 if error, else 0
     # Assumes:  database connection exists
@@ -691,8 +705,8 @@ def doDeletes(refsKey):
 
     db.sql('''select _StrainMarker_key
 	into temporary table toDelete
-	from MRK_Strain_Marker
-	where _Refs_key = %s''' % refsKey, None)
+	from MRK_StrainMarker
+	where _Refs_key in (%s)''' % refsKeys, None)
 
     db.sql('''create index idx1 on toDelete(_StrainMarker_key)''', 'auto')
 
@@ -706,7 +720,7 @@ def doDeletes(refsKey):
     fpLogCur.write('\nDeleting %s Strain Markers\n\n' % deleteCt)
     db.sql('''delete from MRK_StrainMarker sm
 	using toDelete d
-	where d._StrainMarker_key = sm._StrainMarker_key''' % userKey, None)
+	where d._StrainMarker_key = sm._StrainMarker_key''', None)
     db.commit()
     db.useOneConnection(0)
 
@@ -721,21 +735,35 @@ def doBcp():
     # Effects: sets global variables, writes to the file system
     # Throws: Nothing
 
-    bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, strain_markertable, outputDir, strainMarkerFile)
+    bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, strainmarker_table, outputDir, smBcpFile)
+    print bcpCmd
     rc = os.system(bcpCmd)
+    print 'rc: %s' % rc
     if rc:
 	return rc
+    if loadOnlyB6 == 'false':
+	bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, acc_table, outputDir, accBcpFile)
+	print bcpCmd
+	rc = os.system(bcpCmd)
+	print 'rc: %s' % rc
+	if rc:
+	    return rc
 
-    bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, acc_table, outputDir, accFile)
-    rc = os.system(bcpCmd)
-    if rc:
-	return rc
+	bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, accref_table, outputDir, accRefBcpFile)
+	print bcpCmd
+	rc = os.system(bcpCmd)
+	print 'rc: %s' % rc
+	if rc:
+	    return rc
 
-    bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, accref_table, outputDir, accRefFile)
-    rc = os.system(bcpCmd)
-    if rc:
-        return rc
+    fpLogCur.write('\nLoaded %s Strain Markers\n\n' % totalLoadedCt)
+    fpLogCur.write('Total MGP in input: %s\n\n' % mgpFileCt)
+    fpLogCur.write('Total MGP  skipped: %s\n\n' % mgpSkipCt)
+    fpLogCur.write('Total MGP Strain Markers Loaded: %s\n\n' % mgpLoadCt)
+    fpLogCur.write('Total MGP Strain Markers Loaded with no Marker: %s\n\n' % mgpNoMarkerCt)
+    fpLogCur.write('Total B6 Strain Markers Loaded: %s\n\n' % b6LoadCt)
 
+    fpLogCur.close()
     return 0
 
 
@@ -787,23 +815,18 @@ if writeB6Output () != 0:
     sys.exit(1)
 
 if QC_ONLY == 'false':
-    # delete existing B6 strain markers
+
     print '%s' % mgi_utils.date()
-    print 'running doDeletes() B6'
-    if doDeletes(b6RefsKey) != 0:
-	print 'Deleting B6 failed'
+    refsKeys = '%s, %s' % (b6RefsKey, mgpRefsKey) # default is B6 and MGP
+    if loadOnlyB6 == 'true': # load only B6
+	refsKeys = b6RefsKey
+
+    print 'running doDeletes(%s)' % refsKeys
+
+    if doDeletes(refsKeys) != 0:
+	print 'Deleting Strain Markers failed'
 	sys.exit(1)
-    if not loadOnlyB6:
-	# delete existing MGP strain markers
-	print '%s' % mgi_utils.date()
-	print 'running doDeletes() MGP'
-	if doDeletes(mgpRefsKey) != 0:
-	    print 'Do Deletes failed'
-	    sys.exit(1)
-
 	
-
-
 # close all output files
 print '%s' % mgi_utils.date()
 print 'running closeFiles()'
@@ -811,12 +834,12 @@ if closeFiles() != 0:
     print 'Closing Files failed'
     sys.exit(1)
 
-#if  QC_ONLY == 'false':
-#    # execute bcp
-#    print '%s' % mgi_utils.date()
-#    print 'running doBcp()'
-#    if doBcp() != 0:
-#	print 'Do BCP failed'
-#	sys.exit(1)
+if  QC_ONLY == 'false':
+    # execute bcp
+    print '%s' % mgi_utils.date()
+    print 'running doBcp()'
+    if doBcp() != 0:
+	print 'Do BCP failed'
+	sys.exit(1)
 
 sys.exit(0)
