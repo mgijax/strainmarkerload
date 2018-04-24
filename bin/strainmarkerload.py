@@ -124,6 +124,12 @@ accRefBcpFile = os.environ['ACC_REF_BCP_FILE']
 accRefFile = '%s/%s' % (outputDir, accRefBcpFile)
 fpAccRefFile = ''
 
+# output for downstream loads
+gmFile = os.environ['GM_INPUT_FILE']
+fpGmFile = ''
+assocFile = os.environ['GM_ASSOC_FILE']
+fpAssocFile = ''
+
 # QC reporting data structures
 qcDict = {} 
 messageMap = {}
@@ -194,6 +200,11 @@ class StrainMarker:
 	self.markerKey = ''
 	self.strainKey = ''
 	self.mgpIDs = set()
+	self.chr = ''
+	self.start = ''
+	self.end = ''
+	self.strand = ''
+	self.description = ''
         
     def toString(self):
         return '%s, %s, %s, %s' % (self.mgiID, self.markerKey, self.strainKey, self.mgpIDs)
@@ -350,7 +361,7 @@ def openFiles ():
     #  creates files in the file system
 
     global fpStrainMarkerFile, fpAccFile, fpAccRefFile, fpLogCur
-
+    global fpGmFile, fpAssocFile
     try:
         fpStrainMarkerFile  = open(strainMarkerFile, 'w')
     except:
@@ -372,6 +383,17 @@ def openFiles ():
     except:
 	print 'Cannot open Curator Log file: %s' % curLog
         sys.exit(1)
+    try:
+        fpGmFile = open(gmFile, 'w')
+    except:
+        print 'Cannot open Gene Model file: %s' % curLog
+        sys.exit(1)
+    try:
+        fpAssocFile = open(assocFile, 'w')
+    except:
+        print 'Cannot open Gene Model assoc file: %s' % curLog
+        sys.exit(1)
+    fpAssocFile.write('Mouse Genome Project%sMouse Genome Project%s' % (TAB, CRT))
 
     return 0
 
@@ -388,6 +410,8 @@ def closeFiles ():
 	fpStrainMarkerFile.close()
 	fpAccFile.close()
         fpAccRefFile.close()
+	fpGmFile.close()
+	fpAssocFile.close()
     except:
 	return 1
     return 0
@@ -533,6 +557,12 @@ def parseMGPFiles( ):
 		    strainMarkerObject.markerKey = markerKey
 		    strainMarkerObject.strainKey = strainKey
 		    strainMarkerObject.mgpIDs.add(mgpID)
+		    strainMarkerObject.chr = chr
+		    strainMarkerObject.start = start
+		    strainMarkerObject.end = end
+		    strainMarkerObject.strand = strand
+		    # for now leave description the default empty string
+		    #strainMarkerObject.description = 
 		else:
 		    strainMarkerObject = strainMarkerDict[mgiID]
                     strainMarkerObject.mgpIDs.add(mgpID)
@@ -551,7 +581,8 @@ def parseMGPFiles( ):
 # end parseMGPFiles() -------------------------------------
 
 def writeMGPOutput():
-    # Purpose: writes to Accession, AccessionReference & StrainMarker BCP file if there are no errors
+    # Purpose: writes to Accession, AccessionReference & StrainMarker 
+    #	BCP file and Gene Model and GM Assoc files if there are no errors
     # Returns: 1 if error, else 0
     # Assumes: file descriptors have been initialized
     # Effects: writes to the file system
@@ -572,6 +603,12 @@ def writeMGPOutput():
 		mgiID = strainMarkerObject.markerID 
 		markerKey = strainMarkerObject.markerKey
 		strainKey = strainMarkerObject.strainKey
+		chr = strainMarkerObject.chr
+		start = strainMarkerObject.start
+		end = strainMarkerObject.end
+		strand = strainMarkerObject.strand
+		description = strainMarkerObject.description
+
 		for mgpID in mgpList: # One except for the no marker
 		    totalLoadedCt += 1
 		    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, strainKey, TAB, markerKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
@@ -582,6 +619,8 @@ def writeMGPOutput():
 		    % (nextAccKey, TAB, mgpID, TAB, prefixPart, TAB, numericPart, TAB, logicalDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 		    fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
 		    % (nextAccKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+		    fpGmFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (mgpID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
+		    fpAssocFile.write('%s%s%s%s' % (mgpID, TAB, mgpID, CRT))
 		    nextSMKey += 1
 		    nextAccKey += 1
 
