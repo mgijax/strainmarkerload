@@ -94,7 +94,7 @@ loadOnlyB6  = os.environ['B6_ONLY']
 MIN_RECORDS = int(os.environ['MIN_RECORDS'])
 
 # MGP logicalDB Name
-logicalDBKey = 209
+mgpLogicalDBKey = 209
 
 # MRK_StrainMarker MGI Type
 mgiTypeKey = 44
@@ -127,8 +127,8 @@ fpAccRefFile = ''
 # output for downstream loads
 gmFile = os.environ['GM_INPUT_FILE']
 fpGmFile = ''
-assocFile = os.environ['GM_ASSOC_FILE']
-fpAssocFile = ''
+biotypeFile = os.environ['GM_BIOTYPE_FILE']
+fpBiotypeFile = ''
 
 # QC reporting data structures
 qcDict = {} 
@@ -166,11 +166,11 @@ accref_table = 'ACC_AccessionReference'
 
 # count of total strain markers that will be loaded
 totalLoadedCt = 0
-b6LoadCt = 0
-mgpFileCt = 0
-mgpLoadCt = 0
-mgpSkipCt = 0
-mgpNoMarkerCt = 0
+b6LoadCt = 0 # b6 only count
+mgpFileCt = 0 # total in mgp file
+mgpLoadCt = 0 # gotal mgp loaded
+mgpSkipCt = 0 # total mgp skipped
+mgpNoMarkerCt = 0 # total mgp w/no marker
 ctByStrain = {} # {strain: ct, ...}
 
 class Marker:
@@ -205,9 +205,10 @@ class StrainMarker:
 	self.end = ''
 	self.strand = ''
 	self.description = ''
+	self.biotype = ''
         
     def toString(self):
-        return '%s, %s, %s, %s' % (self.mgiID, self.markerKey, self.strainKey, self.mgpIDs)
+        return '%s, %s, %s, %s %s %s %s %s %s' % (self.markerID, self.markerKey, self.strainKey, self.mgpIDs, self.chr, self.start, self.end, self.strand, self.description)
 # end class StrainMarker ----------------------------
 
 def checkArgs ():
@@ -361,7 +362,7 @@ def openFiles ():
     #  creates files in the file system
 
     global fpStrainMarkerFile, fpAccFile, fpAccRefFile, fpLogCur
-    global fpGmFile, fpAssocFile
+    global fpGmFile, fpBiotypeFile
     try:
         fpStrainMarkerFile  = open(strainMarkerFile, 'w')
     except:
@@ -389,11 +390,10 @@ def openFiles ():
         print 'Cannot open Gene Model file: %s' % curLog
         sys.exit(1)
     try:
-        fpAssocFile = open(assocFile, 'w')
+        fpBiotypeFile = open(biotypeFile, 'w')
     except:
-        print 'Cannot open Gene Model assoc file: %s' % curLog
+        print 'Cannot open Gene Model Biotype file: %s' % curLog
         sys.exit(1)
-    fpAssocFile.write('Mouse Genome Project%sMouse Genome Project%s' % (TAB, CRT))
 
     return 0
 
@@ -411,7 +411,7 @@ def closeFiles ():
 	fpAccFile.close()
         fpAccRefFile.close()
 	fpGmFile.close()
-	fpAssocFile.close()
+	fpBiotypeFile.close()
     except:
 	return 1
     return 0
@@ -475,7 +475,7 @@ def parseMGPFiles( ):
 	    mgiID = ''
 	    markerKey = ''
 	    biotype = ''
-	    for t in tokens2:
+	    for t in tokens2: # col9 tokens
 		#print 'token in col9: %s' % t
 		# 'ID=gene:MGP_CAROLIEiJ_G0013919'
 		if t.find('ID=gene:') != -1:
@@ -487,6 +487,7 @@ def parseMGPFiles( ):
 		    mgiID = match.group(1)
 		elif t.find('biotype=') != -1:
 		    biotype = t.split('=')[1]
+		    #print 'biotype=%s' % biotype
 	    #print 'mgpID: %s mgiID: %s biotype: %s' % (mgpID, mgiID, biotype)
 	    #print 'start: "%s" end: "%s"' % (start, end)
 	    if chr == '':
@@ -550,7 +551,9 @@ def parseMGPFiles( ):
 		mgpLoadCt += 1
 		if markerKey == '': # count them
 		    mgpNoMarkerCt += 1
-
+		    # create a temporary ID ofr markerless strain marker object - each must have its own uniq
+		    # set of coordinate attributes
+		    mgiID = 'TEMP:%s' % mgpNoMarkerCt
 		strainMarkerObject = StrainMarker() # default to a new one
 	        if mgiID not in strainMarkerDict:
 		    strainMarkerObject.markerID = mgiID
@@ -561,11 +564,14 @@ def parseMGPFiles( ):
 		    strainMarkerObject.start = start
 		    strainMarkerObject.end = end
 		    strainMarkerObject.strand = strand
+		    strainMarkerObject.biotype = biotype
 		    # for now leave description the default empty string
 		    #strainMarkerObject.description = 
-		else:
+		else:   # later we will eliminate any strainmarkers w/multi
+			# MGP Ids
 		    strainMarkerObject = strainMarkerDict[mgiID]
                     strainMarkerObject.mgpIDs.add(mgpID)
+		#print strainMarkerObject.toString()
 		strainMarkerDict[mgiID] =  strainMarkerObject
 	ctByStrain[strain] =  recordCt
 	# ------------ end for line in file --------------------
@@ -596,33 +602,36 @@ def writeMGPOutput():
             strainMarkerObjectsList = strainMarkerInputDict[strain]
             for strainMarkerObject in strainMarkerObjectsList:
                 mgpList = list(strainMarkerObject.mgpIDs) # get the list of mgp IDs
-                if strainMarkerObject.markerID != '' and len(mgpList) > 1:
+                if len(mgpList) > 1:
 		    mgpSkipCt += len(mgpList)
 		    continue  # these were reported
 	        # otherwise write out to bcp file
+	  	mgpID = mgpList[0]
 		mgiID = strainMarkerObject.markerID 
 		markerKey = strainMarkerObject.markerKey
+		if mgiID.find('TEMP:') == 0: # temp ID for no marker strain marker
+		    markerKey = ''
 		strainKey = strainMarkerObject.strainKey
 		chr = strainMarkerObject.chr
 		start = strainMarkerObject.start
 		end = strainMarkerObject.end
 		strand = strainMarkerObject.strand
 		description = strainMarkerObject.description
+		biotype = strainMarkerObject.biotype
 
-		for mgpID in mgpList: # One except for the no marker
-		    totalLoadedCt += 1
-		    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, strainKey, TAB, markerKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+		totalLoadedCt += 1
+		fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, strainKey, TAB, markerKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
-		    prefixPart, numericPart = accessionlib.split_accnum(mgpID)
+		prefixPart, numericPart = accessionlib.split_accnum(mgpID)
 
-		    fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-		    % (nextAccKey, TAB, mgpID, TAB, prefixPart, TAB, numericPart, TAB, logicalDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-		    fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
-		    % (nextAccKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-		    fpGmFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (mgpID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
-		    fpAssocFile.write('%s%s%s%s' % (mgpID, TAB, mgpID, CRT))
-		    nextSMKey += 1
-		    nextAccKey += 1
+		fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
+		% (nextAccKey, TAB, mgpID, TAB, prefixPart, TAB, numericPart, TAB, mgpLogicalDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+		fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
+		% (nextAccKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+		fpGmFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (mgpID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
+		fpBiotypeFile.write('%s%s%s%s' % (mgpID, TAB, biotype, CRT))
+		nextSMKey += 1
+		nextAccKey += 1
 
     return 0
 
@@ -635,18 +644,43 @@ def writeB6Output():
     # Effects: writes to the file system
     # Throws: Nothing
 
-    global nextSMKey, totalLoadedCt, b6LoadCt
+    global nextSMKey, nextAccKey, totalLoadedCt, b6LoadCt
 
-    results = db.sql('''select distinct _Marker_Key
-			from MRK_Location_Cache lc
-			where lc.provider in ('NCBI', 'Ensembl')''', 'auto')
+    db.sql('''select lc.provider, sc.*
+		into temporary table neSeqs
+		from MRK_Location_Cache lc, SEQ_Marker_Cache sc
+		where lc.provider in ('NCBI', 'Ensembl')
+		and lc._Marker_key = sc._Marker_key
+		and sc._Qualifier_key = 615419 -- rep genomic''', None)
+
+    db.sql('''create index idx2 on neSeqs(_Sequence_key)''', None)
+
+    results = db.sql('''select s._Marker_key, a.* 
+		from neSeqs s, ACC_Accession a 
+		where s._Sequence_key = a._Object_key
+		and a._MGIType_key = 19
+		and a._LogicalDB_key in (59, 60)
+		and a.preferred = 1 ''', 'auto')
     print 'len(results): %s' % len(results)
     for r in results:
 	markerKey = r['_Marker_key']
-
+	gmID = r['accID']
+	prefixPart = r['prefixPart']
+	if prefixPart == None: # NCBI IDs are numeric
+	    prefixPart = ''
+	numericPart = r['numericPart']
+	logicalDBKey = r['_LogicalDB_key']
+	
 	fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, b6StrainKey, TAB, markerKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
+	fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
+	    % (nextAccKey, TAB, gmID, TAB, prefixPart, TAB, numericPart, TAB, logicalDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+	fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
+	    % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+	
 	nextSMKey += 1
+	nextAccKey += 1
+
     totalLoadedCt += len(results)
     b6LoadCt = len(results)
     return 0
