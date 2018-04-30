@@ -58,9 +58,9 @@ export SM_BCP_FILE ACC_BCP_FILE ACC_REF_BCP_FILE
 
 # strainmarkerload creates these files for downstream processing
 GM_INPUT_FILE=${OUTPUTDIR}/gminputfile.txt
-GM_ASSOC_FILE=${OUTPUTDIR}/gmassocfile.txt
+GM_BIOTYPE_FILE=${OUTPUTDIR}/gmbiotypefile.txt
 
-export GM_INPUT_FILE GM_ASSOC_FILE
+export GM_INPUT_FILE GM_BIOTYPE_FILE
 
 #  Complete path name of the log files
 LOG_FILE=${LOGDIR}/strainmarkerload.log
