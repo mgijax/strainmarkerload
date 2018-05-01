@@ -341,10 +341,10 @@ def init():
     for r in results:
 	chrLookup[r['chromosome']] = r['_Chromosome_key']
 
-    # load lookup of rawbiotypes
+    # load lookup of raw MGP biotypes
     results = db.sql('''select distinct t.term
 	from MRK_BiotypeMapping b, VOC_Term t
-	where b._BiotypeVocab_key in (103, 104)
+	where b._BiotypeVocab_key  = 136
 	and b._BiotypeTerm_key = t._Term_key''', 'auto')
     for r in results:
 	biotypeLookup.append(r['term'].lower())
