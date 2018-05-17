@@ -528,7 +528,6 @@ def parseMGPFiles( ):
 		if mgiID not in markerLookup:
 		    qcDict['mgi_u'].append('%s : %s' % (mgiID, line))
 		    #print '%s NOT IN MGI in strain file: %s' % (mgiID, strain)
-		    isSkip = 1
 		else:
 		    marker = markerLookup[mgiID]
 		    markerKey = marker.markerKey 
