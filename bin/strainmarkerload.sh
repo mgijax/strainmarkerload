@@ -64,14 +64,55 @@ else
 fi
 
 #
-# create 'cleansed' input files and put them in INPUTDIR - check for minimum size
+# createArchive including OUTPUTDIR, startLog, getConfigEnv
+# sets "JOBKEY"
+#
+
+preload ${OUTPUTDIR} 
+
+#
+# Copy MGI.gff3 from public ftp site
+#
+
+if [ -f ${INPUT_MGI_GFF_FILE} ]
+then
+    echo "Removing MGI GFF File from input directory"
+    rm  "${INPUT_MGI_GFF_FILE}" | tee -a ${LOG}
+fi
+
+echo "Copying new MGI GFF File from FTP site" | tee -a ${LOG}
+echo "scp -p ${GFF3_SERVER}:${INPUT_MGI_GFF} ${INPUTDIR}"
+scp -p "${GFF3_SERVER}:${INPUT_MGI_GFF}" ${INPUTDIR}
+
+#
+# There should be a "lastrun" file in the input directory that was created
+# the last time the load was run for this input file. If this file exists
+# and is more recent than the input file, the load does not need to be run.
+#
+LASTRUN_FILE=${INPUTDIR}/lastrun
+if [ -f ${LASTRUN_FILE} ]
+then
+    if test ${LASTRUN_FILE} -nt ${INPUT_MGI_GFF_FILE}.gz; then
+       echo "" >> ${LOG_CUR} 2>&1
+       echo "LOAD SKIPPED: No new input file: ${INPUT_MGI_GFF_FILE}.gz" >> ${LOG_CUR} 2>&1
+       STAT=0
+       checkStatus ${STAT} "LOAD SKIPPED: No new input file ${INPUT_MGI_GFF_FILE}.gz"
+       shutDown
+       exit 0
+    fi
+fi
+echo "Unzipping MGI GFF FILE" | tee -a ${LOG}
+gunzip ${INPUT_MGI_GFF_FILE}.gz
+
+#
+# create 'cleansed' MGP input files and put them in INPUTDIR - check for minimum size
 #
 DOFILES=1
-if [ $DOFILES ]
+if [ ${DOFILES} -eq 1 ]
 then
-    echo "Preprocessing input files" | tee -a ${LOG}
-    cd ${INPUT_GFF_DIR}
-    for dir in ${INPUT_DIR_LIST}
+    echo "Preprocessing MGP input files in  ${INPUT_MGP_GFF_DIR}" | tee -a ${LOG}
+    cd ${INPUT_MGP_GFF_DIR}
+    for dir in ${INPUT_MGP_DIR_LIST}
     do
 	echo ${dir}
 	# parse strain name and add to top of file
@@ -99,28 +140,32 @@ then
 fi
 
 #
-# createArchive including OUTPUTDIR, startLog, getConfigEnv
-# sets "JOBKEY"
-#
-
-preload ${OUTPUTDIR}
-
-#
-# rm all files/dirs from OUTPUTDIR
-#
-#cleanDir ${OUTPUTDIR}
-
-#
 # run the load
 #
 echo "" >> ${LOG_DIAG}
 date >> ${LOG_DIAG}
 echo "Run strainmarkerload.py"  | tee -a ${LOG_DIAG}
+#STAT=0
 ${STRAINMARKERLOAD}/bin/strainmarkerload.py
 STAT=$?
 checkStatus ${STAT} "${STRAINMARKERLOAD}/bin/strainmarkerload.py"
 
 # run postload cleanup and email logs
+
+#
+# Archive a copy of the input file, adding a timestamp suffix.
+#
+echo "" >> ${LOG_DIAG}
+date >> ${LOG_DIAG}
+echo "Archive input file" >> ${LOG_DIAG}
+TIMESTAMP=`date '+%Y%m%d.%H%M'`
+ARC_FILE=`basename ${INPUT_MGI_GFF_FILE}`.${TIMESTAMP}
+cp -p ${INPUT_MGI_GFF_FILE} ${ARCHIVEDIR}/${ARC_FILE}
+
+#
+# Touch the "lastrun" file to note when the load was run.
+#
+#touch ${LASTRUN_FILE}
 
 shutDown
 
