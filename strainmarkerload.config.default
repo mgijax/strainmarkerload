@@ -42,13 +42,27 @@ INPUTDIR=${FILEDIR}/input
 export FILEDIR ARCHIVEDIR LOGDIR RPTDIR OUTPUTDIR INPUTDIR
 
 # input/output
-INPUT_GFF_DIR=${DATADOWNLOADS}/ftp.ensembl.org/pub/release-91/gff3
-#INPUT_DIR_LIST="mus_caroli mus_musculus_129s1svimj mus_musculus_aj mus_musculus_akrj mus_musculus_balbcj mus_musculus_c3hhej mus_musculus_c57bl6nj mus_musculus_casteij mus_musculus_cbaj mus_musculus_dba2j mus_musculus_fvbnj mus_musculus_lpj mus_musculus_nodshiltj mus_musculus_nzohlltj mus_musculus_pwkphj mus_musculus_wsbeij mus_pahari mus_spretus_spreteij"
-INPUT_DIR_LIST="mus_caroli mus_musculus_129s1svimj mus_musculus_aj mus_musculus_akrj mus_musculus_balbcj mus_musculus_c3hhej mus_musculus_c57bl6nj mus_musculus_casteij mus_musculus_cbaj mus_musculus_dba2j mus_musculus_fvbnj mus_musculus_lpj mus_musculus_nodshiltj mus_musculus_nzohlltj mus_musculus_pwkphj mus_musculus_wsbeij mus_spretus_spreteij"
-# Test file
-#INPUT_GFF_DIR=/mgi/all/wts_projects/12700/12734/TestFiles
-#INPUT_DIR_LIST="mus_musculus_akrj"
-export INPUT_FILE_DIR INPUT_DIR_LIST
+
+# MGP GFF
+# release 91: mus_spretus_spreteij
+# release 92: mus_spretus
+INPUT_MGP_GFF_DIR=${DATADOWNLOADS}/ftp.ensembl.org/pub/release-91/gff3
+#INPUT_MGP_DIR_LIST="mus_caroli mus_musculus_129s1svimj mus_musculus_aj mus_musculus_akrj mus_musculus_balbcj mus_musculus_c3hhej mus_musculus_c57bl6nj mus_musculus_casteij mus_musculus_cbaj mus_musculus_dba2j mus_musculus_fvbnj mus_musculus_lpj mus_musculus_nodshiltj mus_musculus_nzohlltj mus_musculus_pwkphj mus_musculus_wsbeij mus_pahari mus_spretus_spreteij"
+INPUT_MGP_DIR_LIST="mus_caroli mus_musculus_129s1svimj mus_musculus_aj mus_musculus_akrj mus_musculus_balbcj mus_musculus_c3hhej mus_musculus_c57bl6nj mus_musculus_casteij mus_musculus_cbaj mus_musculus_dba2j mus_musculus_fvbnj mus_musculus_lpj mus_musculus_nodshiltj mus_musculus_nzohlltj mus_musculus_pwkphj mus_musculus_wsbeij mus_spretus_spreteij"
+
+export INPUT_MGP_GFF_DIR INPUT_MGP_DIR_LIST
+
+# For Development only:
+FTPROOT=/export/gondor/ftp
+export FTPROOT
+
+INPUT_MGI_GFF_FILE_NAME=MGI.gff3
+INPUT_MGI_GFF_FILE=${INPUTDIR}/${INPUT_MGI_GFF_FILE_NAME}
+INPUT_MGI_GFF=${FTPROOT}/pub/mgigff3/${INPUT_MGI_GFF_FILE_NAME}.gz
+
+GFF3_SERVER=bhmgiapp01
+
+export INPUT_MGI_GFF_FILE_NAME INPUT_MGI_GFF_FILE  INPUT_MGI_GFF  GFF3_SERVER
 
 SM_BCP_FILE=MRK_StrainMarker.bcp
 ACC_BCP_FILE=ACC_Accession.bcp
@@ -57,10 +71,12 @@ ACC_REF_BCP_FILE=ACC_AccessionReference.bcp
 export SM_BCP_FILE ACC_BCP_FILE ACC_REF_BCP_FILE
 
 # strainmarkerload creates these files for downstream processing
-GM_INPUT_FILE=${OUTPUTDIR}/gminputfile.txt
-GM_BIOTYPE_FILE=${OUTPUTDIR}/gmbiotypefile.txt
+GM_MGP_INPUT_FILE=${OUTPUTDIR}/gm_mgpinputfile.txt
+GM_MGP_BIOTYPE_FILE=${OUTPUTDIR}/gm_mgpbiotypefile.txt
+GM_B6_INPUT_FILE=${OUTPUTDIR}/gm_b6inputfile.txt
+GM_B6_BIOTYPE_FILE=${OUTPUTDIR}/gm_b6biotypefile.txt
 
-export GM_INPUT_FILE GM_BIOTYPE_FILE
+export GM_MGP_INPUT_FILE GM_MGP_BIOTYPE_FILE GM_B6_INPUT_FILE GM_B6_BIOTYPE_FILE
 
 #  Complete path name of the log files
 LOG_FILE=${LOGDIR}/strainmarkerload.log
@@ -83,6 +99,7 @@ QC_ONLY=false
 
 # if true, reload B6 strain markers only
 B6_ONLY=false
+#B6_ONLY=true
 
 export QC_ONLY B6_ONLY
 

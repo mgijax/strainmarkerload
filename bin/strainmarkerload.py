@@ -132,10 +132,15 @@ accRefFile = '%s/%s' % (outputDir, accRefBcpFile)
 fpAccRefFile = ''
 
 # output for downstream loads
-gmFile = os.environ['GM_INPUT_FILE']
-fpGmFile = ''
-biotypeFile = os.environ['GM_BIOTYPE_FILE']
-fpBiotypeFile = ''
+gmMgpFile = os.environ['GM_MGP_INPUT_FILE']
+fpGmMgpFile = ''
+biotypeMgpFile = os.environ['GM_MGP_BIOTYPE_FILE']
+fpBiotypeMgpFile = ''
+
+gmB6File = os.environ['GM_B6_INPUT_FILE']
+fpGmB6File = ''
+biotypeB6File = os.environ['GM_B6_BIOTYPE_FILE']
+fpBiotypeB6File = ''
 
 # QC reporting data structures
 qcDict = {} 
@@ -379,13 +384,9 @@ def openFiles ():
     #  creates files in the file system
 
     global fpStrainMarkerFile, fpAccFile, fpAccRefFile, fpLogCur
-    global fpGmFile, fpBiotypeFile, fpB6InputFile
+    global fpGmMgpFile, fpBiotypeMgpFile
+    global fpB6InputFile, fpGmB6File, fpBiotypeB6File
 
-    try:
-        fpB6InputFile  = open(b6InputFile, 'r')
-    except:
-        print 'Cannot open MGI.gff3 B6 file: %s' % strainMarkerFile
-        sys.exit(1)
     try:
         fpStrainMarkerFile  = open(strainMarkerFile, 'w')
     except:
@@ -408,14 +409,29 @@ def openFiles ():
 	print 'Cannot open Curator Log file: %s' % curLog
         sys.exit(1)
     try:
-        fpGmFile = open(gmFile, 'w')
+        fpGmMgpFile = open(gmMgpFile, 'w')
     except:
-        print 'Cannot open Gene Model file: %s' % curLog
+        print 'Cannot open MGP Gene Model file: %s' % curLog
         sys.exit(1)
     try:
-        fpBiotypeFile = open(biotypeFile, 'w')
+        fpBiotypeMgpFile = open(biotypeMgpFile, 'w')
     except:
-        print 'Cannot open Gene Model Biotype file: %s' % curLog
+        print 'Cannot open MGP Gene Model Biotype file: %s' % curLog
+        sys.exit(1)
+    try:
+        fpB6InputFile  = open(b6InputFile, 'r')
+    except:
+        print 'Cannot open MGI.gff3 B6 file: %s' % strainMarkerFile
+        sys.exit(1)
+    try:
+        fpGmB6File = open(gmB6File, 'w')
+    except:
+        print 'Cannot open MGI B6 Gene Model file: %s' % curLog
+        sys.exit(1)
+    try:
+        fpBiotypeB6File = open(biotypeB6File, 'w')
+    except:
+        print 'Cannot open MGI B6 Gene Model Biotype file: %s' % curLog
         sys.exit(1)
 
     return 0
@@ -428,14 +444,16 @@ def closeFiles ():
     # Assumes: all file descriptors were initialized
     # Effects: Nothing
     # Throws: Nothing
-    global fpStrainMarkerFile, fpAccFile
+    
     try:
-	fpB6InputFile.close()
 	fpStrainMarkerFile.close()
 	fpAccFile.close()
         fpAccRefFile.close()
-	fpGmFile.close()
-	fpBiotypeFile.close()
+	fpGmMgpFile.close()
+	fpBiotypeMgpFile.close()
+        fpB6InputFile.close()
+        fpGmB6File.close()
+        fpBiotypeB6File.close()
     except:
 	return 1
     return 0
@@ -651,8 +669,8 @@ def writeMGPOutput():
 		% (nextAccKey, TAB, mgpID, TAB, prefixPart, TAB, numericPart, TAB, mgpLDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 		fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
 		% (nextAccKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-		fpGmFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (mgpID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
-		fpBiotypeFile.write('%s%s%s%s' % (mgpID, TAB, biotype, CRT))
+		fpGmMgpFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (mgpID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
+		fpBiotypeMgpFile.write('%s%s%s%s' % (mgpID, TAB, biotype, CRT))
 		nextSMKey += 1
 		nextAccKey += 1
 
@@ -845,8 +863,8 @@ def writeB6Output():
 	    fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
 		% (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 	    
-	    fpGmFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (smID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
-            fpBiotypeFile.write('%s%s%s%s' % (smID, TAB, biotype, CRT))
+	    fpGmB6File.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (smID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
+            fpBiotypeB6File.write('%s%s%s%s' % (smID, TAB, biotype, CRT))
   
 	    nextAccKey += 1
 	
@@ -912,8 +930,8 @@ def writeB6Output():
 
 	    nextAccKey += 1
 
-	    fpGmFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (smID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
-            fpBiotypeFile.write('%s%s%s%s' % (smID, TAB, biotype, CRT))
+	    fpGmB6File.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (smID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
+            fpBiotypeB6File.write('%s%s%s%s' % (smID, TAB, biotype, CRT))
 
 	    # for blat hits in the input file associate the GenBank IDs that was
 	    # blatted for coordinates
