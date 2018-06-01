@@ -1,3 +1,11 @@
+TAG: strainmarkerload-6-0-13-4
+DATE: 06/01/2018
+STAFF: sc
+CHANGES: TR12734 GF project
+1)  added B6, added creation of GM and biotype files
+2) added delete/reload
+3) tested by Richard
+
 TAG: strainmarkerload-6-0-13-3
 TAG: strainmarkerload-6-0-13-2
 TAG: strainmarkerload-6-0-13-1
