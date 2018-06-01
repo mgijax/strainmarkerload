@@ -831,7 +831,7 @@ def writeB6Output():
 
     global  nextSMKey, nextAccKey, totalLoadedCt, b6LoadedCt
 
-    print 'in writeB6Output len of b6ToLoadDict: %s' % len(b6ToLoadDict)
+    #print 'in writeB6Output len of b6ToLoadDict: %s' % len(b6ToLoadDict)
 
     description = ''
     for mgiID in b6ToLoadDict:
@@ -849,7 +849,7 @@ def writeB6Output():
 	    markerKey = marker.markerKey
 
 	if len(lineList) == 1:  # This is non-BlatAlignment gene/pseudogene
-	    print 'NOT blat alignment'
+	    #print 'NOT blat alignment'
 	    line = lineList[0]
 	    chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName  = parseB6Feature(line, 'f')
 
@@ -874,7 +874,7 @@ def writeB6Output():
 	    if gmIdString == '':
 		continue
 	    gmIdList = gmIdString.split(',')
-	    print 'gmIdList: %s' % gmIdList
+	    #print 'gmIdList: %s' % gmIdList
 	    for id in gmIdList:
 		provider, ID = id.split(':')
 		if provider == 'miRBase':
@@ -888,40 +888,37 @@ def writeB6Output():
 
 		fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
 		    % (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-		print 'accGM: ' + '%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-		    % (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT)
+		#print 'accGM: ' + '%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
+		    #% (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT)
 		fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
 		    % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
 		nextAccKey += 1
 	    nextSMKey += 1
 	else: # This is BlatAlignment set
-	    print 'BlatAlignment:'
-	    print mgiID
+	    #print 'BlatAlignment:'
+	    #print mgiID
 	    # The first line is feature line, the following are 
 	    # BlatAlignments
 	    featureLine = lineList[0]
-	    print 'featureLine: %s' % featureLine
+	    #print 'featureLine: %s' % featureLine
 
 	    chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName  = parseB6Feature(featureLine, 'bf')	    
 
 	    # remainder of the list are blat hits - save them to a set
 	    lineList = lineList[1:] # remove the blat feature
 	    for line in lineList:
-		print 'blatLine: %s' % line
+		#print 'blatLine: %s' % line
 		j1, j2, j3, j4, j5, j6, j7, j8, qName = parseB6Feature(line, 'b')
 		qNameSet.add(qName.strip())
-	    print 'qNames: %s ' % qNameSet
+	    #print 'qNames: %s ' % qNameSet
 
 	    #
 	    # Create the strain marker and its accession ID
 	    #
-	    print "strainMarkerBlat: " +  '%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, b6StrainKey, TAB, markerKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT)
 	    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, b6StrainKey, TAB, markerKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
 	    prefixPart, numericPart = accessionlib.split_accnum(smID)
-	    print "accStrainMarkerBlat: " + '%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-		% (nextAccKey, TAB, smID, TAB, prefixPart, TAB, numericPart, TAB, smLDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT)
 	    fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
 		% (nextAccKey, TAB, smID, TAB, prefixPart, TAB, numericPart, TAB, smLDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
@@ -941,8 +938,7 @@ def writeB6Output():
 	       
 		fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
 		    % (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-		print 'accGB: ' + '%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-		    % (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT)
+
 		fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
 		    % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
@@ -1078,21 +1074,21 @@ def doBcp():
     bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, strainmarker_table, outputDir, smBcpFile)
     print bcpCmd
     rc = os.system(bcpCmd)
-    print 'rc: %s' % rc
+    
     if rc:
 	return rc
     if loadOnlyB6 == 'false':
 	bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, acc_table, outputDir, accBcpFile)
 	print bcpCmd
 	rc = os.system(bcpCmd)
-	print 'rc: %s' % rc
+	
 	if rc:
 	    return rc
 
 	bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, accref_table, outputDir, accRefBcpFile)
 	print bcpCmd
 	rc = os.system(bcpCmd)
-	print 'rc: %s' % rc
+	
 	if rc:
 	    return rc
 

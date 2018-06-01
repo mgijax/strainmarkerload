@@ -145,7 +145,6 @@ fi
 echo "" >> ${LOG_DIAG}
 date >> ${LOG_DIAG}
 echo "Run strainmarkerload.py"  | tee -a ${LOG_DIAG}
-#STAT=0
 ${STRAINMARKERLOAD}/bin/strainmarkerload.py
 STAT=$?
 checkStatus ${STAT} "${STRAINMARKERLOAD}/bin/strainmarkerload.py"
