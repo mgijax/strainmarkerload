@@ -771,8 +771,13 @@ def parseB6Feature(line, type):
 	    gmIdString = t.split('=')[1]
 	elif t.find('qName=') != -1:
 	    qName = t.split('=')[1]
+	    qName = qName.split('.')[0]
     #print 'smID: %s mgiID: %s biotype: %s gmIdString: %s' % (smID, mgiID, biotype, gmIdString)
     #print 'chr: "%s" start: "%s" end: "%s" strand: "%s"' % (chr, start, end, strand)
+    # IMPLEMENTATION NOTE: We expect no errors given that this data is from 
+    # Joel's gff3 file. I added print statements to confirm there were no errors
+    # there were not, we don't expect any, so won't take the time to log, just 
+    # print
     if chr == '':
 	#qcDict['chr_m'].append(line)
 	if type == 'f':

@@ -77,10 +77,10 @@ preload ${OUTPUTDIR}
 if [ -f ${INPUT_MGI_GFF_FILE} ]
 then
     echo "Removing MGI GFF File from input directory"
-    rm  "${INPUT_MGI_GFF_FILE}" | tee -a ${LOG}
+    rm  "${INPUT_MGI_GFF_FILE}" | tee -a ${LOG_DIAG}
 fi
 
-echo "Copying new MGI GFF File from FTP site" | tee -a ${LOG}
+echo "Copying new MGI GFF File from FTP site" | tee -a ${LOG_DIAG}
 echo "scp -p ${GFF3_SERVER}:${INPUT_MGI_GFF} ${INPUTDIR}"
 scp -p "${GFF3_SERVER}:${INPUT_MGI_GFF}" ${INPUTDIR}
 
@@ -101,7 +101,7 @@ then
        exit 0
     fi
 fi
-echo "Unzipping MGI GFF FILE" | tee -a ${LOG}
+echo "Unzipping MGI GFF FILE" | tee -a ${LOG_DIAG}
 gunzip ${INPUT_MGI_GFF_FILE}.gz
 
 #
@@ -110,7 +110,7 @@ gunzip ${INPUT_MGI_GFF_FILE}.gz
 DOFILES=1
 if [ ${DOFILES} -eq 1 ]
 then
-    echo "Preprocessing MGP input files in  ${INPUT_MGP_GFF_DIR}" | tee -a ${LOG}
+    echo "Preprocessing MGP input files in  ${INPUT_MGP_GFF_DIR}" | tee -a ${LOG_DIAG}
     cd ${INPUT_MGP_GFF_DIR}
     for dir in ${INPUT_MGP_DIR_LIST}
     do
