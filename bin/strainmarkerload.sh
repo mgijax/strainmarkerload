@@ -1,12 +1,62 @@
 #!/bin/sh
-
-#
-# This script is a wrapper around the process that loads 
-# MGP and MGI B6 Strain Marker Objects 
-#
 #
 #     strainmarker.sh
+###########################################################################
 #
+#  Purpose:
+#
+#      This script is a wrapper around the process that loads 
+#      MGP and MGI B6 Strain Genes 
+#       
+#      This script assumes the caller (straingenemodelload/bin/straingenemodelload.sh)
+#
+#  Usage:
+#
+#      strainmarker.sh
+#
+#  Env Vars:
+#
+#      See the configuration file: strainmarkerload.config
+#
+#  Outputs:
+#
+#       - Log file for the script initialization
+#	- Diagnostic and curator logs
+#	- MRK_StrainMarker bcp file
+#	- ACC_Accession and ACC_AccessionReference bcp files
+#	- input files for the straingenemodelload
+#	    - b6 gene model file
+#	    - b6 biotype file
+#           - mgp gene model file
+#           - mgp biotype file
+#
+#  Exit Codes:
+#
+#      0:  Successful completion
+#      1:  Fatal error occurred
+#
+#  Assumes:  Nothing
+#
+#  Implementation:
+#
+#      This script will perform following steps:
+#
+#      1) unzip the MGI GFF3 file
+#      2) if we are loading MGP (B6_ONLY=false),  preprocess the MGP files
+#      3) run strainmarkerload.py
+#
+#  Notes:  None
+#
+###########################################################################
+#
+#  Modification History:
+#
+#  Date        SE   Change Description
+#  ----------  ---  -------------------------------------------------------
+#
+#  04/25/2018  sc  Initial development
+#
+###########################################################################
 
 cd `dirname $0`/..
 CONFIG_LOAD=`pwd`/strainmarkerload.config
@@ -84,31 +134,13 @@ echo "Copying new MGI GFF File from FTP site" | tee -a ${LOG_DIAG}
 echo "scp -p ${GFF3_SERVER}:${INPUT_MGI_GFF} ${INPUTDIR}"
 scp -p "${GFF3_SERVER}:${INPUT_MGI_GFF}" ${INPUTDIR}
 
-#
-# There should be a "lastrun" file in the input directory that was created
-# the last time the load was run for this input file. If this file exists
-# and is more recent than the input file, the load does not need to be run.
-#
-LASTRUN_FILE=${INPUTDIR}/lastrun
-if [ -f ${LASTRUN_FILE} ]
-then
-    if test ${LASTRUN_FILE} -nt ${INPUT_MGI_GFF_FILE}.gz; then
-       echo "" >> ${LOG_CUR} 2>&1
-       echo "LOAD SKIPPED: No new input file: ${INPUT_MGI_GFF_FILE}.gz" >> ${LOG_CUR} 2>&1
-       STAT=0
-       checkStatus ${STAT} "LOAD SKIPPED: No new input file ${INPUT_MGI_GFF_FILE}.gz"
-       shutDown
-       exit 0
-    fi
-fi
 echo "Unzipping MGI GFF FILE" | tee -a ${LOG_DIAG}
 gunzip ${INPUT_MGI_GFF_FILE}.gz
 
 #
 # create 'cleansed' MGP input files and put them in INPUTDIR - check for minimum size
 #
-DOFILES=1
-if [ ${DOFILES} -eq 1 ]
+if [ "${B6_ONLY}" = "false" ]
 then
     echo "Preprocessing MGP input files in  ${INPUT_MGP_GFF_DIR}" | tee -a ${LOG_DIAG}
     cd ${INPUT_MGP_GFF_DIR}
@@ -147,9 +179,7 @@ date >> ${LOG_DIAG}
 echo "Run strainmarkerload.py"  | tee -a ${LOG_DIAG}
 ${STRAINMARKERLOAD}/bin/strainmarkerload.py
 STAT=$?
-checkStatus ${STAT} "${STRAINMARKERLOAD}/bin/strainmarkerload.py"
-
-# run postload cleanup and email logs
+checkStatus ${STAT} "${STRAINMARKERLOAD}/bin/strainmarkerload.py" >> ${LOG_DIAG} 2>&1
 
 #
 # Archive a copy of the input file, adding a timestamp suffix.
@@ -162,9 +192,6 @@ ARC_FILE=`basename ${INPUT_MGI_GFF_FILE}`.${TIMESTAMP}
 cp -p ${INPUT_MGI_GFF_FILE} ${ARCHIVEDIR}/${ARC_FILE}
 
 #
-# Touch the "lastrun" file to note when the load was run.
+# run postload cleanup and email logs
 #
-#touch ${LASTRUN_FILE}
-
 shutDown
-
