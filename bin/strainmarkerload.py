@@ -77,6 +77,18 @@ CRT = '\n'
 DATE = mgi_utils.date("%m/%d/%Y")
 USAGE='strainmarkerload.py'
 
+# sequence description templates
+
+# Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined annotations to mouse reference assembly GRCm38 provided by: <comma delimited provider:ID>
+ 
+b6DescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined annotations to mouse reference assembly GRCm38 provided by:  %s"
+
+# Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly GRCm38 for sequences: <comma delimited list of genbank ids>.
+
+b6BlatDescriptTemplate =   "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly GRCm38 for sequences: %s."
+
+mgpDescriptTemplate = '"Chr%s:%s-%s, %s strand. xxx %s strain version of Gene: %s, Gene type: %s."'
+
 loaddate = loadlib.loaddate
 #
 #  GLOBALS
@@ -150,7 +162,7 @@ messageMap = {}
 strainTranslationLookup = {} # {badName: _Strain_key, ...}
 markerLookup = {}            # {MGI ID: Marker ...}
 chrLookup = {}		     # {Mouse, Laboratory chr: chrKey, ...}
-biotypeLookup = []           # list of raw biotypes from database
+biotypeLookup = {}           # {raw biotype:feature type, ...}
 mcvTermLookup = []	     # lookup feature type (B6)
 
 # the MGP Strain Marker reference key for J:259852
@@ -358,12 +370,14 @@ def init():
 	chrLookup[r['chromosome']] = r['_Chromosome_key']
 
     # load lookup of raw MGP biotype to feature type
-    results = db.sql('''select distinct t1.term as rawTerm
-	from MRK_BiotypeMapping b, VOC_Term t1
-	where b._BiotypeVocab_key  = 136
-	and b._BiotypeTerm_key = t1._Term_key''', 'auto')
+    results = db.sql('''select t1.term as rawBiotype, t2.term as mcvTerm
+        from VOC_Term t1, VOC_Term t2, 
+	    MRK_BiotypeMapping m
+        where t1._Vocab_key = 136 --Biotype MGP
+        and t1._Term_key = m._BiotypeTerm_key
+	and m._mcvTerm_key = t2._Term_key''', 'auto')
     for r in results:
-	biotypeLookup.append(r['rawTerm'].lower())
+	biotypeLookup[r['rawBiotype'].lower()] = r['mcvTerm']
     #print 'biotypeLookup: %s' % biotypeLookup
 
     # load lookup of feature type vocabulary
@@ -390,48 +404,48 @@ def openFiles ():
     try:
         fpStrainMarkerFile  = open(strainMarkerFile, 'w')
     except:
-        print 'Cannot open Strain Marker BCP file: %s' % strainMarkerFile
+        print 'ERROR: Cannot open Strain Marker BCP file: %s' % strainMarkerFile
         sys.exit(1)
     try:
         fpAccFile  = open(accFile, 'w')
     except:
-        print 'Cannot open ACC_Accession bcp  file: %s' % accFile
+        print 'ERROR: Cannot open ACC_Accession bcp  file: %s' % accFile
         sys.exit(1)
     try:
         fpAccRefFile  = open(accRefFile, 'w')
     except:
-        print 'Cannot open ACC_AccessionReference bcp file: %s' % accRefFile
+        print 'ERROR: Cannot open ACC_AccessionReference bcp file: %s' % accRefFile
         sys.exit(1)
 
     try:
 	fpLogCur = open(curLog, 'a')
     except:
-	print 'Cannot open Curator Log file: %s' % curLog
+	print 'ERROR: Cannot open Curator Log file: %s' % curLog
         sys.exit(1)
     try:
         fpGmMgpFile = open(gmMgpFile, 'w')
     except:
-        print 'Cannot open MGP Gene Model file: %s' % curLog
+        print 'ERROR: Cannot open MGP Gene Model file: %s' % gmMgpFile
         sys.exit(1)
     try:
         fpBiotypeMgpFile = open(biotypeMgpFile, 'w')
     except:
-        print 'Cannot open MGP Gene Model Biotype file: %s' % curLog
+        print 'ERROR: Cannot open MGP Gene Model Biotype file: %s' % biotypeMgpFile
         sys.exit(1)
     try:
         fpB6InputFile  = open(b6InputFile, 'r')
     except:
-        print 'Cannot open MGI.gff3 B6 file: %s' % strainMarkerFile
+        print 'ERROR: Cannot open MGI.gff3 B6 file: %s' % b6InputFile
         sys.exit(1)
     try:
         fpGmB6File = open(gmB6File, 'w')
     except:
-        print 'Cannot open MGI B6 Gene Model file: %s' % curLog
+        print 'ERROR: Cannot open MGI B6 Gene Model file: %s' % gmB6File
         sys.exit(1)
     try:
         fpBiotypeB6File = open(biotypeB6File, 'w')
     except:
-        print 'Cannot open MGI B6 Gene Model Biotype file: %s' % curLog
+        print 'ERROR: Cannot open MGI B6 Gene Model Biotype file: %s' % biotypeB6File
         sys.exit(1)
 
     return 0
@@ -515,6 +529,7 @@ def parseMGPFiles( ):
 	    #print 'tokens2: %s' % tokens2
 	    mgpID = ''
 	    mgiID = ''
+	    symbol = ''
 	    markerKey = ''
 	    biotype = ''
 	    for t in tokens2: # col9 tokens
@@ -565,6 +580,8 @@ def parseMGPFiles( ):
 		else:
 		    qcDict['biotype_u'][biotype] += 1
 		isSkip = 1
+	    else: # resolve the rawbiotype to feature type term
+		biotype = biotypeLookup[biotypeLower]
 	    # Resolve MGI ID 
 	    if mgiID != '':
 		if mgiID not in markerLookup:
@@ -573,7 +590,8 @@ def parseMGPFiles( ):
 		else:
 		    marker = markerLookup[mgiID]
 		    markerKey = marker.markerKey 
-		    
+		    symbol = marker.symbol
+
 		    # not a preferred ID (secondary ID) - report and load
 		    if marker.markerPreferred != 1:
 			qcDict['mgi_s'].append('%s : %s' % \
@@ -595,6 +613,7 @@ def parseMGPFiles( ):
 		    # create a temporary ID ofr markerless strain marker object - each must have its own uniq
 		    # set of coordinate attributes
 		    mgiID = 'TEMP:%s' % mgpNoMarkerCt
+		description = mgpDescriptTemplate % (chr, start, end, strain, strain, symbol, biotype)
 		strainMarkerObject = StrainMarker() # default to a new one
 	        if mgiID not in strainMarkerDict:
 		    strainMarkerObject.markerID = mgiID
@@ -606,8 +625,7 @@ def parseMGPFiles( ):
 		    strainMarkerObject.end = end
 		    strainMarkerObject.strand = strand
 		    strainMarkerObject.biotype = biotype
-		    # for now leave description the default empty string
-		    #strainMarkerObject.description = 
+		    strainMarkerObject.description = description
 		else:   # later we will eliminate any strainmarkers w/multi
 			# MGP Ids
 		    strainMarkerObject = strainMarkerDict[mgiID]
@@ -652,6 +670,7 @@ def writeMGPOutput():
 		markerKey = strainMarkerObject.markerKey
 		if mgiID.find('TEMP:') == 0: # temp ID for no marker strain marker
 		    markerKey = ''
+		    
 		strainKey = strainMarkerObject.strainKey
 		chr = strainMarkerObject.chr
 		start = strainMarkerObject.start
@@ -751,9 +770,11 @@ def parseB6Feature(line, type):
     smID = ''
     mgiID = ''
     markerKey = ''
+    symbol = ''
     biotype = ''
     gmIdString = ''
     qName = ''
+    description = ''
     for t in tokens2: # col9 tokens
 	#print 'token in col9: %s' % t
 	# 'ID=MGI:1344588'
@@ -813,6 +834,8 @@ def parseB6Feature(line, type):
     if mgiID == '':
 	if type == 'f' or type == 'bf':
 	    print 'ERROR: missing mgi ID'
+    else:
+	symbol = markerLookup[mgiID].symbol
     if qName == '' and type == 'b':
 	print 'ERROR: missing qName: %s' % qName
     # check that feature is in the database
@@ -820,8 +843,16 @@ def parseB6Feature(line, type):
 	if type == 'f':
 	    print 'ERROR: biotype not in MGI'
     # Nothing is reported from the adhoc QC checks above
-
-    return [chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName]
+    
+    # calculate the description
+    if type == 'bf': # blat feature
+	description = b6BlatDescriptTemplate % (chr, start, end, strand, symbol, biotype, gmIdString ) # need to get prefixed gmIds in gmIdString
+    elif type == 'f': # feature
+	description = b6DescriptTemplate % (chr, start, end, strand, symbol, biotype, qName)
+    else:
+	pass # type == 'b' gets default empty string 
+	
+    return [chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName, description]
 
 # end parseB6Feature(line) ---------------------------------------------------
 
@@ -847,17 +878,16 @@ def writeB6Output():
 	# Resolve MGI ID
 	if mgiID not in markerLookup:
 	    #qcDict['mgi_u'].append('%s : %s' % (mgiID, line))
-	    print '%s NOT IN MGI in strain file MGI GFF file' % (mgiID)
+	    print '%s in MGI GFF File, but NOT IN MGI' % (mgiID)
 	    continue
 	else:
 	    marker = markerLookup[mgiID]
 	    markerKey = marker.markerKey
-
+	    symbol = marker.symbol
 	if len(lineList) == 1:  # This is non-BlatAlignment gene/pseudogene
 	    #print 'NOT blat alignment'
 	    line = lineList[0]
-	    chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName  = parseB6Feature(line, 'f')
-
+	    chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName, description  = parseB6Feature(line, 'f')
 	    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, b6StrainKey, TAB, markerKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
 	    prefixPart, numericPart = accessionlib.split_accnum(smID)
@@ -873,32 +903,33 @@ def writeB6Output():
   
 	    nextAccKey += 1
 	
-	    # associate the gene model IDs from the input file
+	    # get gmIDs from the input file for the sequence description
 	    # gmIDs example:
 	    # Dbxref=miRBase:MI0005004,ENSEMBL:ENSMUSG00000076010,NCBI_Gene:751557
-	    if gmIdString == '':
+	    if gmIdString == '': 
 		continue
 	    gmIdList = gmIdString.split(',')
-	    #print 'gmIdList: %s' % gmIdList
-	    for id in gmIdList:
-		provider, ID = id.split(':')
-		if provider == 'miRBase':
-		    ldbKey = mirLDBKey
-		elif provider == 'ENSEMBL':
-		    ldbKey = ensLDBKey
-		elif provider == 'NCBI_Gene':
-		    ldbKey = ncbiLDBKey
+	    #
+	    # 6/12 GF-184, remove all associated IDs from strain gene
+	    #
 
-		prefixPart, numericPart = accessionlib.split_accnum(ID)
+	    #for id in gmIdList:
+	    #	provider, ID = id.split(':')
+	    #	if provider == 'miRBase':
+	    #	    ldbKey = mirLDBKey
+	    #	elif provider == 'ENSEMBL':
+	    #	    ldbKey = ensLDBKey
+	    #	elif provider == 'NCBI_Gene':
+	    #	    ldbKey = ncbiLDBKey
+		
+		#prefixPart, numericPart = accessionlib.split_accnum(ID)
+		# 6/12 GF-184, remove all associated IDs from strain ge
+		# fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
+		#    % (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+		#fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
+		#    % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
-		fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-		    % (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-		#print 'accGM: ' + '%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-		    #% (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT)
-		fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
-		    % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-
-		nextAccKey += 1
+		#nextAccKey += 1
 	    nextSMKey += 1
 	else: # This is BlatAlignment set
 	    #print 'BlatAlignment:'
@@ -908,13 +939,13 @@ def writeB6Output():
 	    featureLine = lineList[0]
 	    #print 'featureLine: %s' % featureLine
 
-	    chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName  = parseB6Feature(featureLine, 'bf')	    
+	    chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName, description  = parseB6Feature(featureLine, 'bf')	    
 
 	    # remainder of the list are blat hits - save them to a set
 	    lineList = lineList[1:] # remove the blat feature
 	    for line in lineList:
 		#print 'blatLine: %s' % line
-		j1, j2, j3, j4, j5, j6, j7, j8, qName = parseB6Feature(line, 'b')
+		j1, j2, j3, j4, j5, j6, j7, j8, qName, j9 = parseB6Feature(line, 'b')
 		qNameSet.add(qName.strip())
 	    #print 'qNames: %s ' % qNameSet
 
@@ -934,20 +965,21 @@ def writeB6Output():
 
 	    fpGmB6File.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (smID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
             fpBiotypeB6File.write('%s%s%s%s' % (smID, TAB, biotype, CRT))
-
+	    
+	    # 6/12 GF-184, remove all associated IDs from strain gene	
 	    # for blat hits in the input file associate the GenBank IDs that was
 	    # blatted for coordinates
-	    ldbKey = gbLDBKey
-	    for ID in qNameSet:
-		prefixPart, numericPart = accessionlib.split_accnum(ID)
+	    #ldbKey = gbLDBKey
+	    #for ID in qNameSet:
+	    #	prefixPart, numericPart = accessionlib.split_accnum(ID)
 	       
-		fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-		    % (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+	    #	fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
+	    #	    % (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
-		fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
-		    % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+	    #	fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
+	    #	    % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
-		nextAccKey += 1
+	    #	nextAccKey += 1
 	    nextSMKey += 1
 	totalLoadedCt += 1
         b6LoadedCt += 1
