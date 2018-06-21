@@ -79,15 +79,21 @@ USAGE='strainmarkerload.py'
 
 # sequence description templates
 
-# Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined annotations to mouse reference assembly GRCm38 provided by: <comma delimited provider:ID>
+# Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined annotations to mouse reference assembly <release> provided by: <comma delimited provider:ID>
  
-b6DescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined annotations to mouse reference assembly GRCm38 provided by:  %s"
+b6DescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined annotations to mouse reference assembly %s provided by: %s"
 
-# Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly GRCm38 for sequences: <comma delimited list of genbank ids>.
+# Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly <release> for sequences: <comma delimited list of genbank ids>.
 
-b6BlatDescriptTemplate =   "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly GRCm38 for sequences: %s."
+b6BlatDescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly %s for sequences: %s."
 
-mgpDescriptTemplate = '"Chr%s:%s-%s, %s strand. xxx %s strain version of Gene: %s, Gene type: %s."'
+#  Chr<chr>:<start>-<end>, <strand> strand. Annotation to mouse strain <strain> genome assembly from <release>. Gene type: <feature type>; Gene Name: <marker symbol>.
+
+mgpGeneDescriptTemplate = "Chr%s:%s-%s, %s strand. Annotation to mouse strain %s genome assembly from %s. Gene type: %s; Gene Name: %s"
+
+#  Chr<chr>:<start>-<end>, <strand> strand. Annotation to mouse strain <strain> genome assembly from <release>. Gene type: <feature type>; Gene Name: undefined.
+
+mgpNoGeneDescriptTemplate = "Chr%s:%s-%s, %s strand. Annotation to mouse strain %s genome assembly from %s. Gene type: %s; Gene Name: undefined"
 
 loaddate = loadlib.loaddate
 #
@@ -95,6 +101,10 @@ loaddate = loadlib.loaddate
 #
 
 DEBUG = 0
+
+# the release numbers from MGP and B6 genome
+releaseMGP = os.environ['RELEASE_MGP']
+releaseB6 = os.environ['RELEASE_B6']
 
 # true if we want to run QC and not load relationships
 QC_ONLY = os.environ['QC_ONLY']
@@ -378,7 +388,6 @@ def init():
 	and m._mcvTerm_key = t2._Term_key''', 'auto')
     for r in results:
 	biotypeLookup[r['rawBiotype'].lower()] = r['mcvTerm']
-    #print 'biotypeLookup: %s' % biotypeLookup
 
     # load lookup of feature type vocabulary
     results = db.sql('''select term from VOC_Term
@@ -606,14 +615,19 @@ def parseMGPFiles( ):
 			isSkip = 1
 	    if isSkip:
 		mgpSkipCt += 1
+	    
 	    if not isSkip:
 		mgpLoadCt += 1
+
+		# default to gene present description, if no gene, template will be updated below
+		description = mgpGeneDescriptTemplate % (chr, start, end, strand, strain, releaseMGP, biotype, symbol)
 		if markerKey == '': # count them
 		    mgpNoMarkerCt += 1
-		    # create a temporary ID ofr markerless strain marker object - each must have its own uniq
+		    description = mgpNoGeneDescriptTemplate % (chr, start, end, strand, strain, releaseMGP, biotype)   
+		    # create a temporary ID of markerless strain marker object - each must have its own uniq
 		    # set of coordinate attributes
 		    mgiID = 'TEMP:%s' % mgpNoMarkerCt
-		description = mgpDescriptTemplate % (chr, start, end, strain, strain, symbol, biotype)
+	
 		strainMarkerObject = StrainMarker() # default to a new one
 	        if mgiID not in strainMarkerDict:
 		    strainMarkerObject.markerID = mgiID
@@ -630,7 +644,6 @@ def parseMGPFiles( ):
 			# MGP Ids
 		    strainMarkerObject = strainMarkerDict[mgiID]
                     strainMarkerObject.mgpIDs.add(mgpID)
-		#print strainMarkerObject.toString()
 		strainMarkerDict[mgiID] =  strainMarkerObject
 	ctByStrain[strain] =  recordCt
 	# ------------ end for line in file --------------------
@@ -726,23 +739,17 @@ def parseB6File( ):
 	    feature = tokens[2]
 	# these are the only features we are interested in
 	if feature not in ['gene', 'pseudogene', 'BlatAlignment']:
-	    #print 'badLine: %s' % line
 	    continue
 
-	#print 'goodLine: %s' % line
 	col9 = tokens[8]
-	#print 'col9: %s' % col9
 	tokens2 = col9.split(';')
 
 	mgiID = ''
 	for t in tokens2: # col9 tokens
-	    #print 'token in col9: %s' % t
 	    if t.find('curie=MGI:') != -1: # top level feature
 		mgiID = t.split('=')[1]
-		#print 'found curie=MGI: %s' % mgiID
 	    elif t.find('mgi_id=') != -1:  # blat hit
 		mgiID = t.split('=')[1]
-		#print 'found mgi_id: %s' % mgiID
 	if mgiID != '':
 	    if mgiID not in b6ToLoadDict:
 		b6ToLoadDict[mgiID] = []
@@ -763,9 +770,7 @@ def parseB6Feature(line, type):
     end = tokens[4]
     strand = tokens[6]
     col9 = tokens[8]
-    #print 'col9: %s' % col9
     tokens2 = col9.split(';')
-    #print 'tokens2: %s' % tokens2
     # This is the strain/marker ID in col9 e.g. strain_gene_id=MGI_C57BL6J_1344588
     smID = ''
     mgiID = ''
@@ -776,25 +781,20 @@ def parseB6Feature(line, type):
     qName = ''
     description = ''
     for t in tokens2: # col9 tokens
-	#print 'token in col9: %s' % t
 	# 'ID=MGI:1344588'
 	if t.find('curie=MGI:') != -1:
 	    mgiID = t.split('=')[1]
-	    #print 'found curie=MGI: %s' % mgiID
 	elif t.find('ID=') != -1:
 	    smID = t.split('=')[1]
-	    #print 'found strain_gene_id: %s' % smID
 	elif t.find('mgi_type=') != -1:
 	    biotype = t.split('=')[1]
-	    #print 'found mgi_type=%s' % biotype
 	# Dbxref=miRBase:MI0005004,ENSEMBL:ENSMUSG00000076010,NCBI_Gene:751557
 	elif t.find('Dbxref=') != -1:
 	    gmIdString = t.split('=')[1]
 	elif t.find('qName=') != -1:
 	    qName = t.split('=')[1]
 	    qName = qName.split('.')[0]
-    #print 'smID: %s mgiID: %s biotype: %s gmIdString: %s' % (smID, mgiID, biotype, gmIdString)
-    #print 'chr: "%s" start: "%s" end: "%s" strand: "%s"' % (chr, start, end, strand)
+    
     # IMPLEMENTATION NOTE: We expect no errors given that this data is from 
     # Joel's gff3 file. I added print statements to confirm there were no errors
     # there were not, we don't expect any, so won't take the time to log, just 
@@ -845,12 +845,13 @@ def parseB6Feature(line, type):
     # Nothing is reported from the adhoc QC checks above
     
     # calculate the description
-    if type == 'bf': # blat feature
-	description = b6BlatDescriptTemplate % (chr, start, end, strand, symbol, biotype, gmIdString ) # need to get prefixed gmIds in gmIdString
-    elif type == 'f': # feature
-	description = b6DescriptTemplate % (chr, start, end, strand, symbol, biotype, qName)
-    else:
-	pass # type == 'b' gets default empty string 
+    if type == 'bf': # blat feature has no qName values, create a place holder; filled in later
+	description = b6BlatDescriptTemplate % (chr, start, end, strand, symbol, biotype, releaseB6, '%s') 
+    elif type == 'f': # feature, has gene model IDs
+	description = b6DescriptTemplate % (chr, start, end, strand, symbol, biotype, releaseB6, gmIdString)
+    else: # type == 'b'
+	#description = b6BlatDescriptTemplate % (chr, start, end, strand, symbol, biotype, releaseB6, qName)
+	pass # don't do anything - just return the parsed values, all we need is qName
 	
     return [chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName, description]
 
@@ -867,14 +868,13 @@ def writeB6Output():
 
     global  nextSMKey, nextAccKey, totalLoadedCt, b6LoadedCt
 
-    #print 'in writeB6Output len of b6ToLoadDict: %s' % len(b6ToLoadDict)
-
     description = ''
     for mgiID in b6ToLoadDict:
 	lineList = b6ToLoadDict[mgiID]
 	qNameSet = set()
 	#print mgiID
 	#print lineList
+
 	# Resolve MGI ID
 	if mgiID not in markerLookup:
 	    #qcDict['mgi_u'].append('%s : %s' % (mgiID, line))
@@ -937,17 +937,22 @@ def writeB6Output():
 	    # The first line is feature line, the following are 
 	    # BlatAlignments
 	    featureLine = lineList[0]
-	    #print 'featureLine: %s' % featureLine
 
 	    chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName, description  = parseB6Feature(featureLine, 'bf')	    
-
+	    print 'qName blat top level feature: %s' % qName
 	    # remainder of the list are blat hits - save them to a set
 	    lineList = lineList[1:] # remove the blat feature
 	    for line in lineList:
-		#print 'blatLine: %s' % line
+		print 'blatLine: %s' % line
 		j1, j2, j3, j4, j5, j6, j7, j8, qName, j9 = parseB6Feature(line, 'b')
+		print 'qName blat sequences: %s' % qName
 		qNameSet.add(qName.strip())
-	    #print 'qNames: %s ' % qNameSet
+	    # set the qNames (genbank IDs) in the description string
+	    # ','.join(str(s) for s in myset)
+	    print 'Before description: %s' % description
+	    description = description %  ','.join(str(s) for s in qNameSet)
+	    print 'qNameSet: %s ' % qNameSet
+	    print 'After description: %s' % description
 
 	    #
 	    # Create the strain marker and its accession ID
