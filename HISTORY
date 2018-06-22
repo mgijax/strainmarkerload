@@ -1,3 +1,11 @@
+TAG: strainmarkerload-6-0-13-8
+DATE: 06/21/2018
+STAFF: sc
+CHANGES: TR12734 GF project
+1) split 2 MGP description templates into 4 based on
+a) Mus musculus or [spretus, caroli, pahari]
+b) Gene or no gene
+
 TAG: strainmarkerload-6-0-13-7
 DATE: 06/21/2018
 STAFF: sc
