@@ -3,8 +3,9 @@ DATE: ???
 STAFF: sc
 CHANGES: TR12734 GF project
 1) GF-233 fix punctuation at end of two description templates
-2) GF233 resolve 'raw' strain to MGI strain before addint to sequence
+2) GF233 resolve 'raw' strain to MGI strain before adding to sequence
      description
+3) Update description templates with new wording per Carol
 
 TAG: strainmarkerload-6-0-13-8
 DATE: 06/21/2018
