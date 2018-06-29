@@ -361,11 +361,12 @@ def init():
     #
 
     # load lookup of strain translations
-    results = db.sql('''select badName, _Object_key as strainKey
-	from MGI_Translation
-	where _TranslationType_key = 1021''', 'auto')
+    results = db.sql('''select t.badName, t._Object_key as strainKey, s.strain
+	from MGI_Translation t, PRB_Strain s
+	where t._TranslationType_key = 1021
+	and t._Object_key = s._Strain_key''', 'auto')
     for r in results:
-	strainTranslationLookup[r['badName']] = r['strainKey']
+	strainTranslationLookup[r['badName']] = [r['strainKey'], r['strain']]
 
     # load lookup of all marker MGI IDs
     results = db.sql('''select m._Marker_key, m.symbol, s.status as markerStatus,
@@ -517,14 +518,16 @@ def parseMGPFiles( ):
         fpIn = open(inputFile, 'r')
 
 	# strain is the first line in the file
-        strain = string.strip(fpIn.readline())
+        inputStrain = string.strip(fpIn.readline())
 
 	# resolve strain with translation lookup
-	if strain not in strainTranslationLookup:
+	if inputStrain not in strainTranslationLookup:
 	    qcDict['strain_u'].append(strain)
 	    continue 
 	# get the strain key
-        strainKey = strainTranslationLookup[strain] 
+        strainList= strainTranslationLookup[inputStrain] 
+	strainKey = strainList[0]
+	strain = strainList[1]
 	print 'strain: %s strainKey: %s' % (strain, strainKey)
 	# build this as we parse each file - adding mgpIDs to strainMarkerObject if mgiID
 	# found > 1 in file
