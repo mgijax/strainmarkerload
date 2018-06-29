@@ -79,9 +79,9 @@ USAGE='strainmarkerload.py'
 
 # sequence description templates
 
-# Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined annotations to mouse reference assembly <release> provided by: <comma delimited provider:ID>
+# Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined annotations to mouse reference assembly <release> provided by: <comma delimited provider:ID>.
  
-b6DescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined annotations to mouse reference assembly %s provided by: %s"
+b6DescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined annotations to mouse reference assembly %s provided by: %s."
 
 # Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly <release> for sequences: <comma delimited list of genbank ids>.
 
@@ -105,7 +105,7 @@ b6BlatDescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for 
 nonMuscStrainKeys = [31303, 1398, 34371] # caroli, spretus, pahari  
 
 mgpNonMuscGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by UCSC and the Mouse Genomes Project (MGP). Distributed via %s. Gene type: %s; Gene Name: %s." 
-mgpNonMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by UCSC and the Mouse Genomes Project (MGP). Distributed via %s. Gene type: %s; Gene Name: undefined,"
+mgpNonMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by UCSC and the Mouse Genomes Project (MGP). Distributed via %s. Gene type: %s; Gene Name: undefined."
 mgpMuscGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by GENCODE consortium. Distributed via %s. Gene type: %s; Gene Name: %s."
 mgpMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by GENCODE consortium. Distributed via %s. Gene type: %s; Gene Name: undefined."
 
