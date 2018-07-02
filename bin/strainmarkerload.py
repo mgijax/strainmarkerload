@@ -134,10 +134,6 @@ MIN_RECORDS = int(os.environ['MIN_RECORDS'])
 # accession ID logicalDB keys
 mgpLDBKey = 209 	# MGP
 smLDBKey = 212		# strain marker
-ensLDBKey = 60		# ENSEMBL
-ncbiLDBKey = 59		# NCBI
-mirLDBKey = 83		# miRBase
-gbLDBKey = 9		# GenBank
 
 # MRK_StrainMarker MGI Type
 mgiTypeKey = 44
@@ -186,7 +182,8 @@ messageMap = {}
 
 # Lookups
 strainTranslationLookup = {} # {badName: _Strain_key, ...}
-markerLookup = {}            # {MGI ID: Marker ...}
+markerLookup = {}            # {MGI ID: Marker, ...}
+ensemblLookup = {}	     # {ENS ID: Marker MGI ID, ...}
 chrLookup = {}		     # {Mouse, Laboratory chr: chrKey, ...}
 biotypeLookup = {}           # {raw biotype:feature type, ...}
 mcvTermLookup = []	     # lookup feature type (B6)
@@ -288,7 +285,8 @@ def init():
     # Effects: Sets global variables, exits if a file can't be opened,
     #  creates files in the file system, creates connection to a database
 
-    global nextSMKey, nextAccKey, strainTranslationLookup, markerLookup, chrLookup
+    global nextSMKey, nextAccKey, strainTranslationLookup, markerLookup
+    global ensemblLookup, chrLookup
     global biotypeLookup, mcvTermLookup, messageMap
    
     checkArgs()
@@ -335,11 +333,21 @@ def init():
     qcDict['biotype_u'] = {} # biotype unresolved {biotype:count}, report/skip
     qcDict['strain_u'] = []  # strain unresolved, fatal
     qcDict['mgp'] = []       # mgp is missing, report/skip
-    qcDict['mgi_u'] = []     # marker ID unresolved, report create strain marker with null marker
+    qcDict['mgi_u'] = []     # Ensembl ID unresolved, report create strain 
+			     # marker with null marker
     qcDict['mgi_s'] = []     # marker ID secondary, report, load
     qcDict['mgi_no'] = []    # marker ID not official, report, skip
-    qcDict['mgi_mgp'] = []   # list of {mgiID: ([set of mpIDs]), ...}, one for each strain file
-			     # used to a) determine multiple MGP IDs (within a given strain) per marker, report/skip
+    qcDict['ens_no'] = []    # projection_parent_gene does not contain ENS ID, 
+			     # report, create strain marker with null marker
+    qcDict['ens_miss'] = []  # Missing projection_parent_gene (ensemble id) 
+			     # report, create strain marker with null marker
+    qcDict['ens_multi'] = [] # ensembl ID assoc > 1 marker, report, create 
+			     # strain marker with null marker
+    qcDict['mgi_mgp'] = []   # list of {mgiID: ([set of mpIDs]), ...}, one for 
+			     # each strain file
+			     # used to 
+			     # a) determine multiple MGP IDs (within a 
+			     #   given strain) per marker, report/skip
 			     # b) write out to bcp files
 
     messageMap['chr_m'] = 'Chromosome missing from input, record(s) skipped'
@@ -352,9 +360,12 @@ def init():
     messageMap['biotype_u'] = 'Biotype from input unresolved, record(s) skipped'
     messageMap['strain_u'] = 'Strain from input unresolved, load fails'
     messageMap['mgp'] = 'MGP ID missing from input, record(s) skipped'
-    messageMap['mgi_u'] = 'Marker from input unresolved, strain marker created with null marker'
+    messageMap['mgi_u'] = 'Ensembl ID from input unresolved, strain marker created with null marker'
     messageMap['mgi_s'] = 'Marker from input is secondary ID, strain marker created'
     messageMap['mgi_no'] = 'Marker from input is not official, records(s) skipped'
+    messageMap['ens_no'] = 'projection_parent_gene from input not an Ensembl ID, strain marker created with null marker'
+    messageMap['ens_miss'] = 'projection_parent_gene missing from input'
+    messageMap['ens_multi'] = 'Ensembl ID associated with > 1 marker, strain marker created with null marker'
     messageMap['mgi_mgp'] = 'Markers from input with > 1 Strain specific MGP ID, record(s) skipped'  # when reporting multis. 
 
     #
@@ -388,7 +399,23 @@ def init():
 	m.markerPreferred = r['preferred']
 
 	markerLookup[m.markerID] = m
-    
+   
+    # load lookup of ensembl ID to marker relationships
+    results = db.sql('''select a1.accid as ensID, a2.accid as mgiID
+	from ACC_Accession a1, ACC_Accession a2
+	where a1._MGIType_key = 2
+	and a1._LogicalDB_key = 60
+	and a1._Object_key = a2._Object_key
+	and a2._MGIType_key = 2
+	and a2._LogicalDB_key = 1
+	and a2.prefixPart = 'MGI:' ''', 'auto') 
+    for r in results:
+	ensID = r['ensID']
+	mgiID = r['mgiID']
+	if ensID not in ensemblLookup:
+	    ensemblLookup[ensID] = []
+	ensemblLookup[ensID].append(mgiID)
+	
     # load lookup of mouse, laboratory chromosomes
     results = db.sql('''select chromosome, _Chromosome_key
 	from MRK_Chromosome
@@ -556,25 +583,45 @@ def parseMGPFiles( ):
 	    tokens2 = col9.split(';')
 	    #print 'tokens2: %s' % tokens2
 	    mgpID = ''
+	    ensemblID = ''
 	    mgiID = ''
 	    symbol = ''
 	    markerKey = ''
 	    biotype = ''
+	    hasProjectionParent = 0
 	    for t in tokens2: # col9 tokens
 		#print 'token in col9: %s' % t
 		# 'ID=gene:MGP_CAROLIEiJ_G0013919'
 		if t.find('ID=gene:') != -1:
 		    mgpID = t.split(':')[1]
-		# 'description=X-linked Kx blood group related 4 [Source:MGI Symbol%3BAcc:MGI:3528744]'
-		elif t.find('Acc:MGI:') != -1:
-		    mgiRE = re.compile('(MGI:[0-9]*)')
-		    match = mgiRE.search(t)
-		    mgiID = match.group(1)
+
+		# replace this with projection_parent_gene 
+		#elif t.find('Acc:MGI:') != -1:
+		#    mgiRE = re.compile('(MGI:[0-9]*)')
+		#    match = mgiRE.search(t)
+		#    mgiID = match.group(1)
+
+		# if projection_parent_gene not found mgiID = ''
+		# and markerless strain gene will be loaded
+		elif t.find('projection_parent_gene=') != -1:
+		    hasProjectionParent = 1
+		    ensemblID =  t.split('=')[1].split('.')[0]
+		    if ensemblID.find('ENSMUS') != 0:
+			# not an ensembl ID report/load markerless strain gene
+			qcDict['ens_no'].append(line)
+		    elif ensemblID not in ensemblLookup:
+			# ensembl id not in MGI or not assoc w/marker
+			qcDict['mgi_u'].append('%s : %s' % (ensemblID, line))
+		    elif len(ensemblLookup[ensemblID]) > 1:
+			# ensembl id associated with > 1 marker:
+			mgiIDs = string.join(ensemblLookup[ensemblID], ', ')
+			qcDict['ens_multi'].append('%s : %s : %s ' % (ensemblID, mgiIDs, line))
+		    else: # we have a single MGI ID, get it from the list
+			mgiID = ensemblLookup[ensemblID][0]
 		elif t.find('biotype=') != -1:
 		    biotype = t.split('=')[1]
-		    #print 'biotype=%s' % biotype
-	    #print 'mgpID: %s mgiID: %s biotype: %s' % (mgpID, mgiID, biotype)
-	    #print 'start: "%s" end: "%s"' % (start, end)
+	    if not hasProjectionParent:
+		qcDict['ens_miss'].append('%s : %s ' % (ensemblID, line))
 	    if chr == '':
 		qcDict['chr_m'].append(line)
 		isSkip = 1
@@ -614,7 +661,7 @@ def parseMGPFiles( ):
 	    if mgiID != '':
 		if mgiID not in markerLookup:
 		    qcDict['mgi_u'].append('%s : %s' % (mgiID, line))
-		    #print '%s NOT IN MGI in strain file: %s' % (mgiID, strain)
+		    print '%s NOT IN MGI in strain file: %s' % (mgiID, strain)
 		else:
 		    marker = markerLookup[mgiID]
 		    markerKey = marker.markerKey 
@@ -935,27 +982,7 @@ def writeB6Output():
 	    if gmIdString == '': 
 		continue
 	    gmIdList = gmIdString.split(',')
-	    #
-	    # 6/12 GF-184, remove all associated IDs from strain gene
-	    #
-
-	    #for id in gmIdList:
-	    #	provider, ID = id.split(':')
-	    #	if provider == 'miRBase':
-	    #	    ldbKey = mirLDBKey
-	    #	elif provider == 'ENSEMBL':
-	    #	    ldbKey = ensLDBKey
-	    #	elif provider == 'NCBI_Gene':
-	    #	    ldbKey = ncbiLDBKey
 		
-		#prefixPart, numericPart = accessionlib.split_accnum(ID)
-		# 6/12 GF-184, remove all associated IDs from strain ge
-		# fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-		#    % (nextAccKey, TAB, ID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-		#fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
-		#    % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-
-		#nextAccKey += 1
 	    nextSMKey += 1
 	else: # This is BlatAlignment set
 	    #print 'BlatAlignment:'
@@ -1082,7 +1109,7 @@ def writeCuratorLog():
     #
     #  process remaining QC in order specified by richard
     #
-    order = ['strain_u', 'biotype_m', 'mgp', 'chr_u', 'chr_m', 'start', 'end', 'strand', 'start/end', 'mgi_no', 'mgi_u', 'mgi_s']
+    order = ['strain_u', 'biotype_m', 'mgp', 'chr_u', 'chr_m', 'start', 'end', 'strand', 'start/end', 'mgi_no', 'mgi_u', 'mgi_s', 'ens_no', 'ens_miss', 'ens_multi']
     for key in order:
         qcList = qcDict[key]
 	if qcList == []:

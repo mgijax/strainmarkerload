@@ -2,10 +2,12 @@ TAG: strainmarkerload-6-0-13-
 DATE: ???
 STAFF: sc
 CHANGES: TR12734 GF project
-1) GF-233 fix punctuation at end of two description templates
-2) GF233 resolve 'raw' strain to MGI strain before adding to sequence
-     description
+1) GF-233 bug from release 91 testing fix punctuation at end of two description templates
+2) GF-233 but from release 91 testing resolve 'raw' strain to MGI strain before 
+     adding to sequence description
 3) Update description templates with new wording per Carol
+4) Update to use release 92 file - parse Ensembl from 'projection_parent_gene'
+	and resolve to MGI marker, 4 new QC checks
 
 TAG: strainmarkerload-6-0-13-8
 DATE: 06/21/2018
