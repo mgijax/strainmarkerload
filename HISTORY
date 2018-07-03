@@ -8,6 +8,8 @@ CHANGES: TR12734 GF project
 3) Update description templates with new wording per Carol
 4) Update to use release 92 file - parse Ensembl from 'projection_parent_gene'
 	and resolve to MGI marker, 4 new QC checks
+5) update to use new '_primarymcvterm_key' from MRK_BiotypeMapping. Added to
+   schema as _mcvterm_key is not what we want.
 
 TAG: strainmarkerload-6-0-13-8
 DATE: 06/21/2018

@@ -424,14 +424,14 @@ def init():
 	chrLookup[r['chromosome']] = r['_Chromosome_key']
 
     # load lookup of raw MGP biotype to feature type
-    results = db.sql('''select t1.term as rawBiotype, t2.term as mcvTerm
+    results = db.sql('''select t1.term as rawBiotype, t2.term as primaryMcvTerm
         from VOC_Term t1, VOC_Term t2, 
 	    MRK_BiotypeMapping m
         where t1._Vocab_key = 136 --Biotype MGP
         and t1._Term_key = m._BiotypeTerm_key
-	and m._mcvTerm_key = t2._Term_key''', 'auto')
+	and m._PrimaryMCVTerm_key = t2._Term_key''', 'auto')
     for r in results:
-	biotypeLookup[r['rawBiotype'].lower()] = r['mcvTerm']
+	biotypeLookup[r['rawBiotype'].lower()] = r['primaryMcvTerm']
 
     # load lookup of feature type vocabulary
     results = db.sql('''select term from VOC_Term
@@ -661,7 +661,7 @@ def parseMGPFiles( ):
 	    if mgiID != '':
 		if mgiID not in markerLookup:
 		    qcDict['mgi_u'].append('%s : %s' % (mgiID, line))
-		    print '%s NOT IN MGI in strain file: %s' % (mgiID, strain)
+		    #print '%s NOT IN MGI in strain file: %s' % (mgiID, strain)
 		else:
 		    marker = markerLookup[mgiID]
 		    markerKey = marker.markerKey 
@@ -992,20 +992,20 @@ def writeB6Output():
 	    featureLine = lineList[0]
 
 	    chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName, description  = parseB6Feature(featureLine, 'bf')	    
-	    print 'qName blat top level feature: %s' % qName
+	    #print 'qName blat top level feature: %s' % qName
 	    # remainder of the list are blat hits - save them to a set
 	    lineList = lineList[1:] # remove the blat feature
 	    for line in lineList:
-		print 'blatLine: %s' % line
+		#print 'blatLine: %s' % line
 		j1, j2, j3, j4, j5, j6, j7, j8, qName, j9 = parseB6Feature(line, 'b')
-		print 'qName blat sequences: %s' % qName
+		#print 'qName blat sequences: %s' % qName
 		qNameSet.add(qName.strip())
 	    # set the qNames (genbank IDs) in the description string
 	    # ','.join(str(s) for s in myset)
-	    print 'Before description: %s' % description
+	    #print 'Before description: %s' % description
 	    description = description %  ','.join(str(s) for s in qNameSet)
-	    print 'qNameSet: %s ' % qNameSet
-	    print 'After description: %s' % description
+	    #print 'qNameSet: %s ' % qNameSet
+	    #print 'After description: %s' % description
 
 	    #
 	    # Create the strain marker and its accession ID
