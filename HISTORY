@@ -10,7 +10,8 @@ CHANGES: TR12734 GF project
 	and resolve to MGI marker, 4 new QC checks
 5) update to use new '_primarymcvterm_key' from MRK_BiotypeMapping. Added to
    schema as _mcvterm_key is not what we want.
-6) updated mgiconfig to release 92
+6) updated mgiconfig to release 92, and index.html
+7) add J:262996 to B6 sequence description templates.
 
 TAG: strainmarkerload-6-0-13-8
 DATE: 06/21/2018
