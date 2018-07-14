@@ -408,6 +408,7 @@ def init():
 	and a1._Object_key = a2._Object_key
 	and a2._MGIType_key = 2
 	and a2._LogicalDB_key = 1
+	and a2.preferred = 1
 	and a2.prefixPart = 'MGI:' ''', 'auto') 
     for r in results:
 	ensID = r['ensID']
