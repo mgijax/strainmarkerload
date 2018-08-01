@@ -12,6 +12,12 @@ CHANGES: TR12734 GF project
    schema as _mcvterm_key is not what we want.
 6) updated mgiconfig to release 92, and index.html
 7) add J:262996 to B6 sequence description templates.
+8) GF-286: 
+    report and load following with marker assoc instead of skipping:
+	Markers from input with > 1 Strain specific MGP ID
+    report and load following with null marker instead of skipping:
+	Marker from input is not official,
+	Ensembl ID associated with > 1 marker
 
 TAG: strainmarkerload-6-0-13-8
 DATE: 06/21/2018

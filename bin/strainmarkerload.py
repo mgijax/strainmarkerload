@@ -336,10 +336,11 @@ def init():
     qcDict['mgi_u'] = []     # Ensembl ID unresolved, report create strain 
 			     # marker with null marker
     qcDict['mgi_s'] = []     # marker ID secondary, report, load
-    qcDict['mgi_no'] = []    # marker ID not official, report, skip
+    qcDict['mgi_no'] = []    # marker ID not official, report create strain
+                             # marker with null marker
     qcDict['ens_no'] = []    # projection_parent_gene does not contain ENS ID, 
 			     # report, create strain marker with null marker
-    qcDict['ens_miss'] = []  # Missing projection_parent_gene (ensemble id) 
+    qcDict['ens_miss'] = []  # Missing projection_parent_gene (ensembl id) 
 			     # report, create strain marker with null marker
     qcDict['ens_multi'] = [] # ensembl ID assoc > 1 marker, report, create 
 			     # strain marker with null marker
@@ -347,7 +348,8 @@ def init():
 			     # each strain file
 			     # used to 
 			     # a) determine multiple MGP IDs (within a 
-			     #   given strain) per marker, report/skip
+			     #   given strain) per marker, report and create 
+			     # strain gene
 			     # b) write out to bcp files
 
     messageMap['chr_m'] = 'Chromosome missing from input, record(s) skipped'
@@ -362,11 +364,11 @@ def init():
     messageMap['mgp'] = 'MGP ID missing from input, record(s) skipped'
     messageMap['mgi_u'] = 'Ensembl ID from input unresolved, strain marker created with null marker'
     messageMap['mgi_s'] = 'Marker from input is secondary ID, strain marker created'
-    messageMap['mgi_no'] = 'Marker from input is not official, records(s) skipped'
+    messageMap['mgi_no'] = 'Marker from input is not official, strain marker created with null marker'
     messageMap['ens_no'] = 'projection_parent_gene from input not an Ensembl ID, strain marker created with null marker'
-    messageMap['ens_miss'] = 'projection_parent_gene missing from input'
+    messageMap['ens_miss'] = 'projection_parent_gene missing from input, strain marker created with null marker'
     messageMap['ens_multi'] = 'Ensembl ID associated with > 1 marker, strain marker created with null marker'
-    messageMap['mgi_mgp'] = 'Markers from input with > 1 Strain specific MGP ID, record(s) skipped'  # when reporting multis. 
+    messageMap['mgi_mgp'] = 'Markers from input with > 1 Strain specific MGP ID, report and load strain marker and MGI marker association'
 
     #
     # create lookups
@@ -557,12 +559,13 @@ def parseMGPFiles( ):
         strainList= strainTranslationLookup[inputStrain] 
 	strainKey = strainList[0]
 	strain = strainList[1]
-	print 'strain: %s strainKey: %s' % (strain, strainKey)
-	# build this as we parse each file - adding mgpIDs to strainMarkerObject if mgiID
-	# found > 1 in file
+	#print 'strain: %s strainKey: %s' % (strain, strainKey)
+	# build this as we parse each file - adding mgpIDs to 
+	# strainMarkerObject if mgiID found in dict > 1 in file
 	strainMarkerDict = {}   # {mgiID:strainMarkerObject, ...}
 
-	# after file parsed copy the strainMarkerObjects from strainMarkerDict to this mapping by strain
+	# after file parsed copy the strainMarkerObjects from 
+	# strainMarkerDict to this mapping by strain
 	strainMarkerInput = {} 		# {strain: list of strainMarkerObjects, ...}
 	strainMarkerInput[strain] = []	# initialize 
 
@@ -585,7 +588,7 @@ def parseMGPFiles( ):
 	    #print 'tokens2: %s' % tokens2
 	    mgpID = ''
 	    ensemblID = ''
-	    mgiID = ''
+	    mgiIDs = [] # one or more mgiID assoc with ensembl ID
 	    symbol = ''
 	    markerKey = ''
 	    biotype = ''
@@ -596,33 +599,30 @@ def parseMGPFiles( ):
 		if t.find('ID=gene:') != -1:
 		    mgpID = t.split(':')[1]
 
-		# replace this with projection_parent_gene 
-		#elif t.find('Acc:MGI:') != -1:
-		#    mgiRE = re.compile('(MGI:[0-9]*)')
-		#    match = mgiRE.search(t)
-		#    mgiID = match.group(1)
-
 		# if projection_parent_gene not found mgiID = ''
 		# and markerless strain gene will be loaded
 		elif t.find('projection_parent_gene=') != -1:
 		    hasProjectionParent = 1
 		    ensemblID =  t.split('=')[1].split('.')[0]
+		    #print 'ensemblID: %s' % ensemblID
 		    if ensemblID.find('ENSMUS') != 0:
 			# not an ensembl ID report/load markerless strain gene
 			qcDict['ens_no'].append(line)
 		    elif ensemblID not in ensemblLookup:
 			# ensembl id not in MGI or not assoc w/marker
 			qcDict['mgi_u'].append('%s : %s' % (ensemblID, line))
-		    elif len(ensemblLookup[ensemblID]) > 1:
-			# ensembl id associated with > 1 marker:
-			mgiIDs = string.join(ensemblLookup[ensemblID], ', ')
-			qcDict['ens_multi'].append('%s : %s : %s ' % (ensemblID, mgiIDs, line))
-		    else: # we have a single MGI ID, get it from the list
-			mgiID = ensemblLookup[ensemblID][0]
+		    else:
+			# get mgiID(s)
+			mgiIDs = ensemblLookup[ensemblID]
+		        #print 'mgiIDs: %s' % mgiIDs
+			if len(mgiIDs) > 1:
+			    qcDict['ens_multi'].append('%s : %s : %s ' % (ensemblID, mgiIDs, line))
+			    mgiIDs = [] # reset to empty list to load i
+					# markerless strain gene
 		elif t.find('biotype=') != -1:
 		    biotype = t.split('=')[1]
 	    if not hasProjectionParent:
-		qcDict['ens_miss'].append('%s : %s ' % (ensemblID, line))
+		qcDict['ens_miss'].append('%s' %  line)
 	    if chr == '':
 		qcDict['chr_m'].append(line)
 		isSkip = 1
@@ -658,28 +658,30 @@ def parseMGPFiles( ):
 		isSkip = 1
 	    else: # resolve the rawbiotype to feature type term
 		biotype = biotypeLookup[biotypeLower]
-	    # Resolve MGI ID 
-	    if mgiID != '':
-		if mgiID not in markerLookup:
-		    qcDict['mgi_u'].append('%s : %s' % (mgiID, line))
-		    #print '%s NOT IN MGI in strain file: %s' % (mgiID, strain)
-		else:
-		    marker = markerLookup[mgiID]
-		    markerKey = marker.markerKey 
-		    symbol = marker.symbol
+	    # Resolve MGI ID(s)
+	    if mgiIDs != []: # one or more mgiID assoc wtih ensembl ID
+		for mgiID in mgiIDs:
+		    #print 'mgiID: %s' % mgiID
+		    if mgiID not in markerLookup:
+			qcDict['mgi_u'].append('%s : %s' % (mgiID, line))
+			#print '%s NOT IN MGI in strain file: %s' % (mgiID, strain)
+		    else:
+			marker = markerLookup[mgiID]
+			markerKey = marker.markerKey 
+			symbol = marker.symbol
 
-		    # not a preferred ID (secondary ID) - report and load
-		    if marker.markerPreferred != 1:
-			qcDict['mgi_s'].append('%s : %s' % \
-			    (mgiID, line))
-			#print '%s SECONDARY ID in strain file: %s' % (mgiID, strain)
+			# not a preferred ID (secondary ID) - report and load
+			if marker.markerPreferred != 1:
+			    qcDict['mgi_s'].append('%s : %s' % \
+				(mgiID, line))
+			    #print '%s SECONDARY ID in strain file: %s' % (mgiID, strain)
 
-		    # not official marker status - report and skip
-		    if marker.markerStatus != 'official':
-			markerKey = '' # Don't load unofficial markers
-			qcDict['mgi_no'].append('%s : %s' % (mgiID, line))
-			#print '%s MARKER NOT OFFICIAL in strain file: %s' % (mgiID, strain)
-			isSkip = 1
+			# not official marker status - report and skip
+			if marker.markerStatus != 'official':
+			    markerKey = '' # load unofficial strain markers with null marker
+			    qcDict['mgi_no'].append('%s : %s' % (mgiID, line))
+			    #print '%s MARKER NOT OFFICIAL in strain file: %s' % (mgiID, strain)
+			    #isSkip = 1
 	    if isSkip:
 		mgpSkipCt += 1
 	    
@@ -742,43 +744,45 @@ def writeMGPOutput():
 
     global nextSMKey, nextAccKey, mgpSkipCt, totalLoadedCt
 
+    # for markers with >1 strain specific MGP ID
+    # report and load a strain marker and a accession for each MGP ID
     strainMarkerInputList = qcDict['mgi_mgp']
     for strainMarkerInputDict in strainMarkerInputList:
         for strain in strainMarkerInputDict:
+	    #print 'strain: %s' % strain
             strainMarkerObjectsList = strainMarkerInputDict[strain]
             for strainMarkerObject in strainMarkerObjectsList:
                 mgpList = list(strainMarkerObject.mgpIDs) # get the list of mgp IDs
-                if len(mgpList) > 1:
-		    mgpSkipCt += len(mgpList)
-		    continue  # these were reported
-	        # otherwise write out to bcp file
-	  	mgpID = mgpList[0]
-		mgiID = strainMarkerObject.markerID 
-		markerKey = strainMarkerObject.markerKey
-		if mgiID.find('TEMP:') == 0: # temp ID for no marker strain marker
-		    markerKey = ''
-		    
-		strainKey = strainMarkerObject.strainKey
-		chr = strainMarkerObject.chr
-		start = strainMarkerObject.start
-		end = strainMarkerObject.end
-		strand = strainMarkerObject.strand
-		description = strainMarkerObject.description
-		biotype = strainMarkerObject.biotype
+		#print 'mgpList: %s' % mgpList
+		for mgpID in mgpList:
+		    #print 'Processing mgp: %s' % mgpID
+		    # write out to bcp file
+		    mgiID = strainMarkerObject.markerID 
+		    markerKey = strainMarkerObject.markerKey
+		    if mgiID.find('TEMP:') == 0: # temp ID for no marker strain marker
+			markerKey = ''
+			
+		    strainKey = strainMarkerObject.strainKey
+		    chr = strainMarkerObject.chr
+		    start = strainMarkerObject.start
+		    end = strainMarkerObject.end
+		    strand = strainMarkerObject.strand
+		    description = strainMarkerObject.description
+		    biotype = strainMarkerObject.biotype
 
-		totalLoadedCt += 1
-		fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, strainKey, TAB, markerKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+		    totalLoadedCt += 1
+		    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, strainKey, TAB, markerKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
-		prefixPart, numericPart = accessionlib.split_accnum(mgpID)
+		    prefixPart, numericPart = accessionlib.split_accnum(mgpID)
 
-		fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-		% (nextAccKey, TAB, mgpID, TAB, prefixPart, TAB, numericPart, TAB, mgpLDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-		fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
-		% (nextAccKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
-		fpGmMgpFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (mgpID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
-		fpBiotypeMgpFile.write('%s%s%s%s' % (mgpID, TAB, biotype, CRT))
-		nextSMKey += 1
-		nextAccKey += 1
+		    fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
+		    % (nextAccKey, TAB, mgpID, TAB, prefixPart, TAB, numericPart, TAB, mgpLDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+		    fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
+		    % (nextAccKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+		    fpGmMgpFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (mgpID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
+		    fpBiotypeMgpFile.write('%s%s%s%s' % (mgpID, TAB, biotype, CRT))
+		    nextSMKey += 1
+		    nextAccKey += 1
 
     return 0
 
@@ -1082,12 +1086,12 @@ def writeCuratorLog():
 		    # no marker
 		    if strainMarkerObject.markerKey == '': 
 			mgpNoMarkerCt = mgpNoMarkerCt - 1
-		    mgpSkipped += len(mgpList)
+		    #mgpSkipped += len(mgpList)
 		    multiList.append('%s: %s' % (strainMarkerObject.markerID, string.join(mgpList, ', ')))
 
     # if we have multiple mpg IDs/marker within a strain, report
     if len(multiList):
-	mgpLoadCt = mgpLoadCt - mgpSkipped # subtract multiples, won't load them
+	#mgpLoadCt = mgpLoadCt - mgpSkipped # subtract multiples, won't load them
 	msg = messageMap['mgi_mgp']
 	fpLogCur.write('%s%s'% (msg,CRT))
 	fpLogCur.write('-' * 80 + CRT)
