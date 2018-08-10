@@ -82,11 +82,11 @@ USAGE='strainmarkerload.py'
 # Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined annotations to mouse reference assembly <release> provided by: <comma delimited provider:ID>.
 # chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined annotations to mouse reference assembly <release> provided by: <comma delimited provider:ID>. Note that the source annotations for this representation of the C57BL/6J gene model sequence can derive from different assembly patches (J:262996). 
 
-b6DescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined annotations to mouse reference assembly %s provided by: %s. Note that the source annotations for this representation of the C57BL/6J gene model sequence can derive from different assembly patches (\\Ref(J:262996||))."
+b6DescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined annotations to mouse reference assembly %s provided by: %s. Note that the source annotations for this representation of the C57BL/6J gene model sequence can derive from different assembly patches (\\\Ref(J:262996||))."
 
 # Chr<chr>:<start>-<end>, <strand> strand. MGI derived this sequence for the C57BL/6J strain version of Gene: <marker symbol>, Gene type: <feature type>, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly <release> for sequences: <comma delimited list of genbank ids> (J:262996).
 
-b6BlatDescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly %s for sequences: %s (\\Ref(J:262996||))."
+b6BlatDescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly %s for sequences: %s (\\\Ref(J:262996||))."
 
 #
 # MGP has 4 templates
