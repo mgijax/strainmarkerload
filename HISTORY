@@ -1,3 +1,9 @@
+TAG: strainmarkerload-6-0-13-10
+DATE: 10/03/2018
+STAFF: sc
+CHANGES: TR12734 GF project
+1) bug fix - wasn't doing accession bcp when B6_ONLY=true
+
 TAG: strainmarkerload-6-0-13-9
 DATE: 09/12/2018
 STAFF: sc

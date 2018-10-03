@@ -125,6 +125,7 @@ QC_ONLY = os.environ['QC_ONLY']
 
 # if true only load B6 strain markers
 loadOnlyB6  = os.environ['B6_ONLY']
+print 'loadOnlyB6: %s' % loadOnlyB6
 
 # min number of records expected
 MIN_RECORDS = int(os.environ['MIN_RECORDS'])
@@ -1143,20 +1144,20 @@ def doBcp():
     
     if rc:
 	return rc
-    if loadOnlyB6 == 'false':
-	bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, acc_table, outputDir, accBcpFile)
-	print bcpCmd
-	rc = os.system(bcpCmd)
-	
-	if rc:
-	    return rc
 
-	bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, accref_table, outputDir, accRefBcpFile)
-	print bcpCmd
-	rc = os.system(bcpCmd)
-	
-	if rc:
-	    return rc
+    bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, acc_table, outputDir, accBcpFile)
+    print bcpCmd
+    rc = os.system(bcpCmd)
+    
+    if rc:
+	return rc
+
+    bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, accref_table, outputDir, accRefBcpFile)
+    print bcpCmd
+    rc = os.system(bcpCmd)
+    
+    if rc:
+	return rc
 
     fpLogCur.write('\nLoaded %s Strain Markers\n\n' % totalLoadedCt)
     fpLogCur.write('Total MGP in input: %s\n\n' % mgpFileCt)
