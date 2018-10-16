@@ -1,3 +1,9 @@
+TAG: strainmarkerload-6-0-13-12
+DATE: 10/16/2018
+STAFF: sc
+CHANGES: TR12734 GF project
+strainmarkerload.config.default - rm override of FTPROOT
+
 TAG: strainmarkerload-6-0-13-11
 TAG: strainmarkerload-6-0-13-10
 DATE: 10/03/2018
