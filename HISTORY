@@ -1,3 +1,9 @@
+TAG: strainmarkerload-6-0-13-13
+DATE: 1/7/2019
+STAFF: dbm
+CHANGES:
+1) strainmarkerload.py: strip tokens to remove newlines
+
 TAG: strainmarkerload-6-0-13-12
 DATE: 10/16/2018
 STAFF: sc
