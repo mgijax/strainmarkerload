@@ -864,6 +864,7 @@ def parseB6Feature(line, type):
     qName = ''
     description = ''
     for t in tokens2: # col9 tokens
+	t = t.strip()
 	# 'ID=MGI:1344588'
 	if t.find('curie=MGI:') != -1:
 	    mgiID = t.split('=')[1]
