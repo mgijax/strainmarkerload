@@ -1,3 +1,11 @@
+TAG: strainmarkerload-6-0-15-1
+DATE: 3/9/2020
+STAFF: sc
+CHANGES:
+1) strip mgiID when loading b6ToLoadDict 
+   when it is the last key/value pair in col 9 it will have
+   a newline on it and be loaded as a separate id in the dict
+
 TAG: strainmarkerload-6-0-13-14
 DATE: 1/7/2019
 STAFF: dbm

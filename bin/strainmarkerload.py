@@ -812,16 +812,22 @@ def parseB6File( ):
 
     # iterate thru lines in the B6 file
     for line in fpB6InputFile.readlines():
+	#print 'parseB6File line: %s' % line
 	if line.find('#') == 0: # skip commented lines
+	    #print 'comment line, skipping'
 	    continue
 	
 	tokens = line.split('\t')
 	if tokens[1] == 'BlatAlignment':
 	    feature = tokens[1]
+	    #print 'BlatAlignment feature: %s' % feature
+	
 	else:
 	    feature = tokens[2]
+	    #print 'Non-blatAlignment feature: %s' % feature
 	# these are the only features we are interested in
 	if feature not in ['gene', 'pseudogene', 'BlatAlignment']:
+	    #print "Skipping, feature not in ['gene', 'pseudogene', 'BlatAlignment']"
 	    continue
 
 	col9 = tokens[8]
@@ -830,12 +836,16 @@ def parseB6File( ):
 	mgiID = ''
 	for t in tokens2: # col9 tokens
 	    if t.find('curie=MGI:') != -1: # top level feature
-		mgiID = t.split('=')[1]
+		mgiID = string.strip(t.split('=')[1])
+		#print 'found top level feature: "%s"' % mgiID
 	    elif t.find('mgi_id=') != -1:  # blat hit
-		mgiID = t.split('=')[1]
+		mgiID = string.strip(t.split('=')[1])
+		#print 'found blat hit: "%s"' % mgiID
 	if mgiID != '':
+	    #print 'adding mgiID to b6ToLoadDict'
 	    if mgiID not in b6ToLoadDict:
 		b6ToLoadDict[mgiID] = []
+		#print 'new mgiID in dict'
 	    b6ToLoadDict[mgiID].append(line)
     return 0
 
@@ -927,7 +937,6 @@ def parseB6Feature(line, type):
 	description = b6DescriptTemplate % (chr, start, end, strand, symbol, biotype, releaseB6, gmIdString)
     else: # type == 'b'
 	pass # just return the parsed values, all we need is qName
-	
     return [chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName, description]
 
 # end parseB6Feature(line) ---------------------------------------------------
@@ -942,10 +951,11 @@ def writeB6Output():
     # Throws: Nothing
 
     global  nextSMKey, nextAccKey, totalLoadedCt, b6LoadedCt
-
     description = ''
     for mgiID in b6ToLoadDict:
+	#print 'writeB6Output mgiID: "%s"' % mgiID
 	lineList = b6ToLoadDict[mgiID]
+	#print 'writeB6Output lineList: %s' % lineList
 	qNameSet = set()
 
 	# Resolve MGI ID
@@ -957,6 +967,7 @@ def writeB6Output():
 	    markerKey = marker.markerKey
 	    symbol = marker.symbol
 	if len(lineList) == 1:  # This is non-BlatAlignment gene/pseudogene
+	    #print 'This is non-BlatAlignment gene/pseudogene and nextSMKey: %s' % nextSMKey
 	    line = lineList[0]
 	    chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName, description  = parseB6Feature(line, 'f')
 	    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, b6StrainKey, TAB, markerKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
@@ -983,6 +994,7 @@ def writeB6Output():
 		
 	    nextSMKey += 1
 	else: # This is BlatAlignment set
+	    #print 'this is a BlatAlignment set nextSMKey: %s' % nextSMKey
 	    # The first line is feature line, the following are BlatAlignments
 	    featureLine = lineList[0]
 
@@ -1217,7 +1229,6 @@ if parseB6File() != 0:
     print 'Parsing MGI GFF file failed'
     closeFiles()
     sys.exit(1)
-
 print '%s' % mgi_utils.date()
 print 'running writeB6Output'
 if writeB6Output () != 0:
