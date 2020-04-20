@@ -59,7 +59,6 @@
 
 import sys
 import os
-import string
 import Set
 import re
 
@@ -1067,14 +1066,14 @@ def writeCuratorLog():
                         markerID = o.markerID
                         mgpList.append(o.mgpID)
                     if markerID != '':  #we don't care about multis if no marker
-                        multiList.append('%s: %s' % (markerID, str.join(mgpList, ', ')))
+                        multiList.append('%s: %s' % (markerID, str.join(', ', mgpList)))
 
     # if we have multiple mpg IDs/marker within a strain, report
     if len(multiList):
         msg = messageMap['mgi_mgp']
         fpLogCur.write('%s%s'% (msg,CRT))
         fpLogCur.write('-' * 80 + CRT)
-        fpLogCur.write('%s%s' % (str.join(multiList, CRT), CRT))
+        fpLogCur.write('%s%s' % (str.join(CRT, multiList), CRT))
         fpLogCur.write('Total: %s%s%s' % (count, CRT, CRT))
 
     #
@@ -1101,7 +1100,7 @@ def writeCuratorLog():
         msg = messageMap[key]
         fpLogCur.write('%s%s'% (msg,CRT))
         fpLogCur.write('-' * 80 + CRT)
-        fpLogCur.write(str.join(qcList, CRT))
+        fpLogCur.write(str.join(CRT, qcList))
         fpLogCur.write('%sTotal: %s%s%s' % (CRT, len(qcList), CRT, CRT))
     
     if isFatal:
