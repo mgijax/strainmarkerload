@@ -177,7 +177,7 @@ fi
 echo "" >> ${LOG_DIAG}
 date >> ${LOG_DIAG}
 echo "Run strainmarkerload.py"  | tee -a ${LOG_DIAG}
-${STRAINMARKERLOAD}/bin/strainmarkerload.py
+${PYTHON} ${STRAINMARKERLOAD}/bin/strainmarkerload.py
 STAT=$?
 checkStatus ${STAT} "${STRAINMARKERLOAD}/bin/strainmarkerload.py" >> ${LOG_DIAG} 2>&1
 
