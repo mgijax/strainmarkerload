@@ -52,8 +52,8 @@ INPUT_MGP_DIR_LIST="mus_caroli mus_musculus_129s1svimj mus_musculus_aj mus_muscu
 
 export INPUT_MGP_GFF_DIR INPUT_MGP_DIR_LIST
 
-RELEASE_MGP="Ensembl Release 92"
-RELEASE_B6=GRCm38
+RELEASE_MGP="Ensembl Release 103"
+RELEASE_B6=GRCm39
 
 export RELEASE_MGP RELEASE_B6
 
