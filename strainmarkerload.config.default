@@ -103,9 +103,9 @@ export QC_ONLY
 # if true, reload B6 strain markers only
 # use these when running this load by itself i.e. not from 
 # straingenemodelload
-B6_ONLY=true
+#B6_ONLY=true
 
-export B6_ONLY
+#export B6_ONLY
 
 #  The name of the job stream for the load
 JOBSTREAM=strainmarkerload
