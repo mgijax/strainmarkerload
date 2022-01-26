@@ -319,12 +319,8 @@ def init():
     #
     # get next MRK_StrainMarker key
     #
-    results = db.sql('''select max(_StrainMarker_key) + 1 as nextSMKey
-            from MRK_StrainMarker''', 'auto')
-    if results[0]['nextSMKey'] is None:
-        nextSMKey = 1000
-    else:
-        nextSMKey = results[0]['nextSMKey']
+    results = db.sql(''' select nextval('mrk_strainmarker_seq') as nextSMKey ''', 'auto')
+    nextSMKey = results[0]['nextSMKey']
 
     #
     # get next ACC_Accession key
@@ -1159,6 +1155,10 @@ def doBcp():
     bcpCmd = '%s %s %s %s %s %s "\\t" "\\n" mgd' % (bcpin, server, database, acc_table, outputDir, accBcpFile)
     print(bcpCmd)
     rc = os.system(bcpCmd)
+    
+    # update mrk_strainmarker_seq auto-sequence
+    db.sql(''' select setval('mrk_strainmarker_seq', (select max(_StrainMarker_key) from MRK_StrainMarker)) ''', None)
+    db.commit()
     
     if rc:
         return rc
