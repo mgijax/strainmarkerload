@@ -974,7 +974,7 @@ def writeB6Output():
             fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
                 % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
             
-            fpGmB6File.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (smID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
+            fpGmB6File.write('%s%s%s%s%s%s%s%s%s%s%s%s%s' % (smID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, TAB, CRT))
             fpBiotypeB6File.write('%s%s%s%s' % (smID, TAB, biotype, CRT))
   
             nextAccKey += 1
