@@ -124,52 +124,18 @@ preload ${OUTPUTDIR}
 # Copy MGI.gff3 from public ftp site
 #
 
-if [ -f ${INPUT_MGI_GFF_FILE} ]
-then
-    echo "Removing MGI GFF File from input directory"
-    rm  "${INPUT_MGI_GFF_FILE}" | tee -a ${LOG_DIAG}
-fi
+#if [ -f ${INPUT_MGI_GFF_FILE} ]
+#then
+#    echo "Removing MGI GFF File from input directory"
+#    rm  "${INPUT_MGI_GFF_FILE}" | tee -a ${LOG_DIAG}
+#fi
 
-echo "Copying new MGI GFF File from FTP site" | tee -a ${LOG_DIAG}
-echo "scp -p ${GFF3_SERVER}:${INPUT_MGI_GFF} ${INPUTDIR}"
-scp -p "${GFF3_SERVER}:${INPUT_MGI_GFF}" ${INPUTDIR}
-
-echo "Unzipping MGI GFF FILE" | tee -a ${LOG_DIAG}
-gunzip ${INPUT_MGI_GFF_FILE}.gz
-
+#echo "Copying new MGI GFF File from FTP site" | tee -a ${LOG_DIAG}
+#echo "scp -p ${GFF3_SERVER}:${INPUT_MGI_GFF} ${INPUTDIR}"
+#scp -p "${GFF3_SERVER}:${INPUT_MGI_GFF}" ${INPUTDIR}
 #
-# create 'cleansed' MGP input files and put them in INPUTDIR - check for minimum size
-#
-if [ "${B6_ONLY}" = "false" ]
-then
-    echo "Preprocessing MGP input files in  ${INPUT_MGP_GFF_DIR}" | tee -a ${LOG_DIAG}
-    cd ${INPUT_MGP_GFF_DIR}
-    for dir in ${INPUT_MGP_DIR_LIST}
-    do
-	echo ${dir}
-	# parse strain name and add to top of file
-	strain=`zcat ${dir}/*.gz | grep genome-version | cut -d' ' -f2 | cut -d_ -f1,2`
-	echo ${strain}
-	if [ -z "$strain" ]
-	then
-	    echo "Load Failed: ${INPUTDIR}/${dir}.txt has missing 'genome-version'" | tee -a ${LOG_DIAG} ${LOG_CUR}
-	    exit 1
-	fi
-	echo ${strain} > ${INPUTDIR}/${dir}.txt
-	# add only gene lines
-	zcat ${dir}/*.gz | grep 'ID=gene:' >> ${INPUTDIR}/${dir}.txt
-	count=`cat ${INPUTDIR}/${dir}.txt | wc -l`
-	count=$((count-1)) # remove the strain name line from the count
-	echo "count: $count"
-	echo "min_records: ${MIN_RECORDS}"
-	# check that for the minimum record count
-	if [ ${count} -lt ${MIN_RECORDS} ]
-	then
-	    echo "Load Failed: ${INPUTDIR}/${dir}.txt has $count records which is less than the required ${MIN_RECORDS}" | tee -a ${LOG_DIAG} ${LOG_CUR}
-	    exit 1
-	fi
-    done
-fi
+#echo "Unzipping MGI GFF FILE" | tee -a ${LOG_DIAG}
+#gunzip ${INPUT_MGI_GFF_FILE}.gz
 
 #
 # run the load
@@ -177,19 +143,19 @@ fi
 echo "" >> ${LOG_DIAG}
 date >> ${LOG_DIAG}
 echo "Run strainmarkerload.py"  | tee -a ${LOG_DIAG}
-${PYTHON} ${STRAINMARKERLOAD}/bin/strainmarkerload.py
+${PYTHON} -W ignore::SyntaxWarning ${STRAINMARKERLOAD}/bin/strainmarkerload.py
 STAT=$?
 checkStatus ${STAT} "${STRAINMARKERLOAD}/bin/strainmarkerload.py" >> ${LOG_DIAG} 2>&1
 
 #
 # Archive a copy of the input file, adding a timestamp suffix.
 #
-echo "" >> ${LOG_DIAG}
-date >> ${LOG_DIAG}
-echo "Archive input file" >> ${LOG_DIAG}
-TIMESTAMP=`date '+%Y%m%d.%H%M'`
-ARC_FILE=`basename ${INPUT_MGI_GFF_FILE}`.${TIMESTAMP}
-cp -p ${INPUT_MGI_GFF_FILE} ${ARCHIVEDIR}/${ARC_FILE}
+#echo "" >> ${LOG_DIAG}
+#date >> ${LOG_DIAG}
+#echo "Archive input file" >> ${LOG_DIAG}
+#TIMESTAMP=`date '+%Y%m%d.%H%M'`
+#ARC_FILE=`basename ${INPUT_MGI_GFF_FILE}`.${TIMESTAMP}
+#cp -p ${INPUT_MGI_GFF_FILE} ${ARCHIVEDIR}/${ARC_FILE}
 
 #
 # run postload cleanup and email logs
