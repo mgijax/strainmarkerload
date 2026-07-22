@@ -89,13 +89,6 @@ fi
 . ${CONFIG_LOAD}
 
 #
-# Just a verification of where we are at
-#
-
-echo "MGD_DBSERVER: ${MGD_DBSERVER}"
-echo "MGD_DBNAME: ${MGD_DBNAME}"
-
-#
 #  Source the DLA library functions.
 #
 
@@ -105,11 +98,11 @@ then
     then
         . ${DLAJOBSTREAMFUNC}
     else
-        echo "Cannot source DLA functions script: ${DLAJOBSTREAMFUNC}" | tee -a ${LOG}
+        echo "Cannot source DLA functions script: ${DLAJOBSTREAMFUNC}" >> ${LOG_DIAG} 2>&1
         exit 1
     fi
 else
-    echo "Environment variable DLAJOBSTREAMFUNC has not been defined." | tee -a ${LOG}
+    echo "Environment variable DLAJOBSTREAMFUNC has not been defined." >> ${LOG_DIAG} 2>&1
     exit 1
 fi
 
@@ -123,36 +116,31 @@ preload ${OUTPUTDIR}
 #
 # Copy MGI.gff3 from public ftp site
 #
-
-#if [ -f ${INPUT_MGI_GFF_FILE} ]
-#then
-#    echo "Removing MGI GFF File from input directory"
-#    rm  "${INPUT_MGI_GFF_FILE}" | tee -a ${LOG_DIAG}
-#fi
-
-#echo "Copying new MGI GFF File from FTP site" | tee -a ${LOG_DIAG}
-#echo "scp -p ${GFF3_SERVER}:${INPUT_MGI_GFF} ${INPUTDIR}"
-#scp -p "${GFF3_SERVER}:${INPUT_MGI_GFF}" ${INPUTDIR}
-#
-#echo "Unzipping MGI GFF FILE" | tee -a ${LOG_DIAG}
-#gunzip ${INPUT_MGI_GFF_FILE}.gz
+#date >> ${LOG_DIAG} 2>&1
+#echo "Removing MGI GFF File from input directory"
+#rm -rf "${INPUT_MGI_GFF_FILE}" >> ${LOG_DIAG} 2>&1
+#echo "Copying new MGI GFF File from FTP site" >> ${LOG_DIAG} 2>&1
+#echo "scp -p ${GFF3_SERVER}:${INPUT_MGI_GFF} ${INPUTDIR}" >> ${LOG_DIAG} 2>&1
+#scp -p "${GFF3_SERVER}:${INPUT_MGI_GFF}" ${INPUTDIR} >> ${LOG_DIAG} 2>&1
+#echo "Unzipping MGI GFF FILE" >> ${LOG_DIAG} 2>&1
+#gunzip ${INPUT_MGI_GFF_FILE}.g>> ${LOG_DIAG} 2>&1
 
 #
 # run the load
 #
+date >> ${LOG_DIAG} 2>&1
 echo "" >> ${LOG_DIAG}
-date >> ${LOG_DIAG}
-echo "Run strainmarkerload.py"  | tee -a ${LOG_DIAG}
-${PYTHON} -W ignore::SyntaxWarning ${STRAINMARKERLOAD}/bin/strainmarkerload.py
+echo "Run strainmarkerload.py"  >> ${LOG_DIAG} 2>&1
+${PYTHON} -W ignore::SyntaxWarning ${STRAINMARKERLOAD}/bin/strainmarkerload.py >> ${LOG_DIAG} 2>&1
 STAT=$?
 checkStatus ${STAT} "${STRAINMARKERLOAD}/bin/strainmarkerload.py" >> ${LOG_DIAG} 2>&1
 
 #
 # Archive a copy of the input file, adding a timestamp suffix.
 #
-#echo "" >> ${LOG_DIAG}
-#date >> ${LOG_DIAG}
-#echo "Archive input file" >> ${LOG_DIAG}
+#echo "" >> ${LOG_DIAG} 2>&1
+#date >> ${LOG_DIAG} 2>&1
+#echo "Archive input file" >> ${LOG_DIAG} 2>&1
 #TIMESTAMP=`date '+%Y%m%d.%H%M'`
 #ARC_FILE=`basename ${INPUT_MGI_GFF_FILE}`.${TIMESTAMP}
 #cp -p ${INPUT_MGI_GFF_FILE} ${ARCHIVEDIR}/${ARC_FILE}
