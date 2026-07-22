@@ -678,7 +678,7 @@ def parseMGPFiles( ):
             # check that biotype is in the database
             biotypeLower = biotype.lower().strip()
             #print('biotypeLower:', biotypeLower)
-            if biotypeLower not in biotypeLookup:
+            if hasProjectionParent and biotypeLower not in biotypeLookup:
                 if biotype not in qcDict['biotype_u']:     
                     qcDict['biotype_u'][biotype] = 1
                 else:
