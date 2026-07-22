@@ -1108,6 +1108,8 @@ def writeCuratorLog():
     #
     # special handling for unresolved biotypes
     # if we have unresolved biotypes print out the biotype with its count of MGP IDs
+    # we are only interested if row contains "projection_parent"
+    # grep retained_intron * | grep projection
     #
     biotypeDict = qcDict['biotype_u']
     if len(biotypeDict):
