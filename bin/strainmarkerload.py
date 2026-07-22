@@ -698,7 +698,7 @@ def parseMGPFiles( ):
 	    # if isSkip, then done
             if isSkip:
                 mgpSkipCt += 1
-		continue
+                continue
             
 	    # else, continue processing
 
