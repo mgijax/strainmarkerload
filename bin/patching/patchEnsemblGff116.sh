@@ -44,4 +44,8 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+# copy patched file to ftp site
+mkdir -p ${PATCH_FTP_DIR}
+scp -r ${PATCH_ODIR}/* ${PATCH_FTP_DIR}
+
 log "PatchEnsemblGff116 ended at:" `date`

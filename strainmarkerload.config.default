@@ -135,6 +135,7 @@ export INSTALLDIR
 
 export PATCH_IDIR="${INPUT_MGP_GFF_DIR}"
 export PATCH_ODIR="${FILEDIR}/patched"
+export PATCH_FTP_DIR="${FTPROOT}/pub/alliance/mousestrains"
 export PATCH_LOG="${LOGDIR}/strainmarkerload.patching.log"
 export PATCH_PPG_LIMIT="3"
 export PATCH_ARCHIVED_MGP_IDS="${INSTALLDIR}/bin/patching/archive_mgps.csh.log"
