@@ -1,1 +1,3 @@
 *.config
+bin/patching/archive_mgps.csh.log
+__pycache__
