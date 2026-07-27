@@ -118,12 +118,19 @@ preload ${OUTPUTDIR}
 #
 #date >> ${LOG_DIAG} 2>&1
 #echo "Removing MGI GFF File from input directory"
-#rm -rf "${INPUT_MGI_GFF_FILE}" >> ${LOG_DIAG} 2>&1
+#rm -rf ${INPUT_MGI_GFF_FILE} >> ${LOG_DIAG} 2>&1
 #echo "Copying new MGI GFF File from FTP site" >> ${LOG_DIAG} 2>&1
 #echo "scp -p ${GFF3_SERVER}:${INPUT_MGI_GFF} ${INPUTDIR}" >> ${LOG_DIAG} 2>&1
-#scp -p "${GFF3_SERVER}:${INPUT_MGI_GFF}" ${INPUTDIR} >> ${LOG_DIAG} 2>&1
-#echo "Unzipping MGI GFF FILE" >> ${LOG_DIAG} 2>&1
+#scp -p ${GFF3_SERVER}:${INPUT_MGI_GFF} ${INPUTDIR} >> ${LOG_DIAG} 2>&1
+#echo "Unzipping MGI GFF Files" >> ${LOG_DIAG} 2>&1
 #gunzip ${INPUT_MGI_GFF_FILE}.g>> ${LOG_DIAG} 2>&1
+
+#date >> ${LOG_DIAG} 2>&1
+#echo "Removing old Strain GFF3 Files from input directory" >> ${LOG_DIAG} 2>&1
+#rm -rf ${INPUTDIR}/Mus*.gff3 >> ${LOG_DIAG} 2>&1
+#echo "Copying new Strain GFF3 Files from patched directory & gzip" >> ${LOG_DIAG} 2>&1
+#gzip -c ${PATCHDIR}/*/* ${INPUTDIR} >> ${LOG_DIAG} 2>&1
+
 
 #
 # run the load
