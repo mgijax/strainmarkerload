@@ -40,7 +40,7 @@
 #
 #      1) run ensembl gff3 116 patching : 'patched' folder
 #      2) copy patched files from 'patched' folder to 'input' folder and unzip
-#      3) copy & unzip the MGI gff3 file from 'export' folder to 'input' folder
+#      3) copy & unzip the MGI gff3 file from '/export/???/ftp/pub/mgigff3' folder to 'input' folder
 #      4) run strainmarkerload.py
 #
 ###########################################################################
@@ -119,7 +119,7 @@ pushd bin/patching >> ${LOG_DIAG} 2>&1
 popd >> ${LOG_DIAG} 2>&1
 
 #
-# Copy the Ensembl Gff3 Patching Files to Input Folder
+# Copy the Ensembl Gff3 Patched Files to Input Folder & Unzip
 #
 date >> ${LOG_DIAG} 2>&1
 echo "Removing old Strain GFF3 Files from input directory" >> ${LOG_DIAG} 2>&1
@@ -147,7 +147,6 @@ gunzip ${INPUT_MGI_GFF_FILE}.gz >> ${LOG_DIAG} 2>&1
 # run the load
 #
 date >> ${LOG_DIAG} 2>&1
-echo "" >> ${LOG_DIAG}
 echo "Run strainmarkerload.py"  >> ${LOG_DIAG} 2>&1
 ${PYTHON} -W ignore::SyntaxWarning ${STRAINMARKERLOAD}/bin/strainmarkerload.py >> ${LOG_DIAG} 2>&1
 STAT=$?
