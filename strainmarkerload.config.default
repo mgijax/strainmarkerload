@@ -38,34 +38,26 @@ LOGDIR=${FILEDIR}/logs
 RPTDIR=${FILEDIR}/reports
 OUTPUTDIR=${FILEDIR}/output
 INPUTDIR=${FILEDIR}/input
-
 export FILEDIR ARCHIVEDIR LOGDIR RPTDIR OUTPUTDIR INPUTDIR
-
-# input/output
 
 # release 116
 INPUT_MGP_GFF_DIR=${DATADOWNLOADS}/ftp.ensembl.org/pub/release-116/gff3
 INPUT_MGP_DIR_LIST="Mus_caroli.CAROLI_EIJ_v1.1.116.gff3 Mus_musculus_c57bl6nj.C57BL_6NJ_v3.116.gff3 Mus_musculus_nodshiltj.NOD_ShiLtJ_v3.116.gff3 Mus_musculus_129s1svimj.129S1_SvImJ_v3.116.gff3 Mus_musculus_casteij.CAST_EiJ_v3.116.gff3 Mus_musculus_nzohlltj.NZO_HlLtJ_v3.116.gff3 Mus_musculus_aj.A_J_v3.116.gff3 Mus_musculus_cbaj.CBA_J_v3.116.gff3 Mus_musculus_pwkphj.PWK_PhJ_v3.116.gff3 Mus_musculus_akrj.AKR_J_v3.116.gff3 Mus_musculus_dba2j.DBA_2J_v3.116.gff3 Mus_musculus_wsbeij.WSB_EiJ_v3.116.gff3 Mus_musculus_balbcj.BALB_cJ_v3.116.gff3 Mus_musculus_fvbnj.FVB_NJ_v3.116.gff3 Mus_musculus_c3hhej.C3H_HeJ_v3.116.gff3 Mus_musculus_lpj.LP_J_v3.116.gff3 Mus_spretus.SPRET_EiJ_v3.116.gff3"
-
 export INPUT_MGP_GFF_DIR INPUT_MGP_DIR_LIST
 
 RELEASE_MGP="Ensembl Release 116"
 RELEASE_B6=GRCm39
-
 export RELEASE_MGP RELEASE_B6
 
 INPUT_MGI_GFF_FILE_NAME=MGI.gff3
 INPUT_MGI_GFF_FILE=${INPUTDIR}/${INPUT_MGI_GFF_FILE_NAME}
 INPUT_MGI_GFF=${FTPROOT}/pub/mgigff3/${INPUT_MGI_GFF_FILE_NAME}.gz
-
 GFF3_SERVER=${SERVER_NAME}
-
 export INPUT_MGI_GFF_FILE_NAME INPUT_MGI_GFF_FILE  INPUT_MGI_GFF  GFF3_SERVER
 
 SM_BCP_FILE=MRK_StrainMarker.bcp
 ACC_BCP_FILE=ACC_Accession.bcp
 ACC_REF_BCP_FILE=ACC_AccessionReference.bcp
-
 export SM_BCP_FILE ACC_BCP_FILE ACC_REF_BCP_FILE
 
 # strainmarkerload creates these files for downstream processing
@@ -73,7 +65,6 @@ GM_MGP_INPUT_FILE=${OUTPUTDIR}/gm_mgpinputfile.txt
 GM_MGP_BIOTYPE_FILE=${OUTPUTDIR}/gm_mgpbiotypefile.txt
 GM_B6_INPUT_FILE=${OUTPUTDIR}/gm_b6inputfile.txt
 GM_B6_BIOTYPE_FILE=${OUTPUTDIR}/gm_b6biotypefile.txt
-
 export GM_MGP_INPUT_FILE GM_MGP_BIOTYPE_FILE GM_B6_INPUT_FILE GM_B6_BIOTYPE_FILE
 
 #  Complete path name of the log files
@@ -82,7 +73,6 @@ LOG_PROC=${LOGDIR}/strainmarkerload.proc.log
 LOG_DIAG=${LOGDIR}/strainmarkerload.diag.log
 LOG_CUR=${LOGDIR}/strainmarkerload.cur.log
 LOG_VAL=${LOGDIR}/strainmarkerload.val.log
-
 export LOG_FILE LOG_PROC LOG_DIAG LOG_CUR LOG_VAL
 
 # minimum number of gene records in a strain file
@@ -94,38 +84,13 @@ export MIN_RECORDS
 # if true, delete and bcp will not be done
 QC_ONLY=false
 #QC_ONLY=true
-
 export QC_ONLY
 
 # if true, reload B6 strain markers only
 # use these when running this load by itself i.e. not from 
 # straingenemodelload
 B6_ONLY=false
-
 export B6_ONLY
-
-#  The name of the job stream for the load
-JOBSTREAM=strainmarkerload
-
-export JOBSTREAM
-
-###########################################################################
-#
-#  MISCELLANEOUS SETTINGS
-#
-###########################################################################
-
-#  The name of the load for the subject of an email notification
-MAIL_LOADNAME="Strain Marker Load"
-
-#  Recipient list for mailing the log files (comma-separated)
-MAIL_LOG_PROC="mgiadmin"
-
-export MAIL_LOADNAME MAIL_LOG_PROC
-
-INSTALLDIR=${STRAINMARKERLOAD}
-export INSTALLDIR
-
 
 ###########################################################################
 #
@@ -133,10 +98,31 @@ export INSTALLDIR
 #
 ###########################################################################
 
-export PATCH_IDIR="${INPUT_MGP_GFF_DIR}"
-export PATCH_ODIR="${FILEDIR}/patched"
-export PATCH_FTP_DIR="${FTPROOT}/pub/alliance/mousestrains"
-export PATCH_LOG="${LOGDIR}/strainmarkerload.patching.log"
-export PATCH_PPG_LIMIT="3"
-export PATCH_ARCHIVED_MGP_IDS="${INSTALLDIR}/bin/patching/archive_mgps.csh.log"
+PATCH_IDIR="${INPUT_MGP_GFF_DIR}"
+PATCH_ODIR="${FILEDIR}/patched"
+PATCH_FTP_DIR="${FTPROOT}/pub/alliance/mousestrains"
+PATCH_LOG="${LOGDIR}/strainmarkerload.patching.log"
+PATCH_PPG_LIMIT="3"
+PATCH_ARCHIVED_MGP_IDS="${INSTALLDIR}/bin/patching/archive_mgps.csh.log"
+export PATCH_IDIR PATCH_ODIR PATCH_FTP_DIR PATCH_LOG PATCH_PPG_LIMIT PATCH_ARCHIVED_MGP_IDS
+
+###########################################################################
+#
+#  MISCELLANEOUS SETTINGS
+#
+###########################################################################
+
+#  The name of the job stream for the load
+JOBSTREAM=strainmarkerload
+export JOBSTREAM
+
+#  The name of the load for the subject of an email notification
+MAIL_LOADNAME="Strain Marker Load"
+
+#  Recipient list for mailing the log files (comma-separated)
+MAIL_LOG_PROC="mgiadmin"
+export MAIL_LOADNAME MAIL_LOG_PROC
+
+INSTALLDIR=${STRAINMARKERLOAD}
+export INSTALLDIR
 

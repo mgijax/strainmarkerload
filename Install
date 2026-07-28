@@ -68,6 +68,14 @@ then
 fi
 
 #
+# Create the patched directory if it doesn't exist.
+#
+if [ ! -d ${PATCH_ODIR} ]
+then
+    mkdir -p ${PATCH_ODIR}
+fi
+
+#
 # Unzip the compressed archive file
 #
 gunzip -c ./bin/patching/archive_mgps.csh.log.gz > ./bin/patching/archive_mgps.csh.log
