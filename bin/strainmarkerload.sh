@@ -114,7 +114,7 @@ preload ${OUTPUTDIR}
 #
 date >> ${LOG_DIAG} 2>&1
 echo "Running patchEnsemblGff116.sh" >> ${LOG_DIAG} 2>&1
-pushd bin/patching >> ${LOG_DIAG} 2>&1
+pushd ${STRAINMARKERLOAD}/bin/patching >> ${LOG_DIAG} 2>&1
 ./patchEnsemblGff116.sh ${INPUT_MGP_GFF_DIR}/*/*.gff3.gz >> ${LOG_DIAG} 2>&1
 popd >> ${LOG_DIAG} 2>&1
 
