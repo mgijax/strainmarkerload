@@ -632,7 +632,8 @@ def parseMGPFiles( ):
                             mgiIDs = [] # reset to empty list to load a markerless strain gene
 
                 # if mgp=MGP_AJ_G0015774
-                elif t.find('mgp=') != -1:
+                # ignore MGP_CAROLIEiJ
+                elif t.find('mgp=') != -1 and t.find('mgp=MGP_CAROLIEiJ') != 0:
                     mgpID = t.split('=')[1]
                     mgpID = mgpID.replace('\n', '')
 
@@ -648,10 +649,10 @@ def parseMGPFiles( ):
 
             if chr == '':
                 qcDict['chr_m'].append(line)
-                isSkip = 1
 
             if chr != '' and chr not in chrLookup:
                 qcDict['chr_u'].append(line)
+                isSkip = 1
 
             if start == '':
                 qcDict['start'].append(line)
@@ -693,6 +694,7 @@ def parseMGPFiles( ):
                     symbol = marker.symbol
 
 	    # if hasProjectionParent and sanity checks fail, then continue to next fpIn()
+            if hasProjectionParent == 1 and isSkip == 1:
                 mgpSkipCt += 1
                 continue
             
@@ -801,7 +803,7 @@ def writeMGPOutput():
                        ldbKey = ensLDBKey
                     else:
                        ldbKey = mgpLDBKey
-                    fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s1%s0%s%s%s%s%s%s%s%s%s' \
+                    fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
                     % (nextAccKey, TAB, mgpensID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
 
                     fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' 
