@@ -187,8 +187,7 @@ biotypeLookup = {}           # {raw biotype:feature type, ...}
 mcvTermLookup = []	     # list of feature types (B6)
 
 # the MGP Strain Marker reference key for J:259852
-#mgpRefsKey = 834890
-mgpRefsKey = 282407
+mgpRefsKey = 834890
 
 # the MGI B6 Strain Marker reference key for J:260092
 b6RefsKey = 282660
