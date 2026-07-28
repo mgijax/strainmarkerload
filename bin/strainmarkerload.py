@@ -69,7 +69,6 @@ db.setTrace(True)
 #
 #  CONSTANTS
 #
-TAB = '\t'
 CRT = '\n'
 USAGE='strainmarkerload.py'
 
@@ -795,7 +794,8 @@ def writeMGPOutput():
                     biotype = strainMarkerObject.biotype
 
                     totalLoadedCt += 1
-                    fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, strainKey, TAB, markerKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+                    fpStrainMarkerFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+		    	% (nextSMKey, strainKey, markerKey, mgpRefsKey, userKey, userKey, loaddate, loaddate))
 
                     prefixPart, numericPart = accessionlib.split_accnum(mgpensID)
 		    # use proper logicaldb key
@@ -803,23 +803,23 @@ def writeMGPOutput():
                        ldbKey = ensLDBKey
                     else:
                        ldbKey = mgpLDBKey
-                    fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-                    % (nextAccKey, TAB, mgpensID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+                    fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t1\t%s\t%s\t%s\t%s\n' \
+                    	% (nextAccKey, mgpensID, prefixPart, numericPart, ldbKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
 
-                    fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' 
-                    % (nextAccKey, TAB, mgpRefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+                    fpAccRefFile.write('%s\t%s\t%s\t%s\t%s\t%s\n' 
+                    	% (nextAccKey, mgpRefsKey, userKey, userKey, loaddate, loaddate))
                     nextAccKey += 1
 
 		    # optional : if mgpID exists, attach as secondary id
                     if mgpID != '':
                        prefixPart, numericPart = accessionlib.split_accnum(mgpID)
                        ldbKey = mgpLDBKey
-                       fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s0%s%s%s%s%s%s%s%s%s' \
-                       % (nextAccKey, TAB, mgpID, TAB, prefixPart, TAB, numericPart, TAB, ldbKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+                       fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t0\t%s\t%s\t%s\t%s\n' \
+                             % (nextAccKey, mgpID, prefixPart, numericPart, ldbKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
                        nextAccKey += 1
 
-                    fpGmMgpFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (mgpensID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
-                    fpBiotypeMgpFile.write('%s%s%s%s' % (mgpensID, TAB, biotype, CRT))
+                    fpGmMgpFile.write('%s\t%s\t%s\t%s\t%s\t%s\t\n' % (mgpensID, chr, start, end, strand, description))
+                    fpBiotypeMgpFile.write('%s\t%s\n' % (mgpensID, biotype))
 
                     nextSMKey += 1
 
@@ -1008,18 +1008,19 @@ def writeB6Output():
             #print('This is non-BlatAlignment gene/pseudogene and nextSMKey: %s' % nextSMKey
             line = lineList[0]
             chr, start, end, strand, smID, mgiID, biotype, gmIdString, qName, description = parseB6Feature(line, 'f')
-            fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, b6StrainKey, TAB, markerKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+            fpStrainMarkerFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+	    	% (nextSMKey, b6StrainKey, markerKey, b6RefsKey, userKey, userKey, loaddate, loaddate))
 
             prefixPart, numericPart = accessionlib.split_accnum(smID)
 
-            fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-                % (nextAccKey, TAB, smID, TAB, prefixPart, TAB, numericPart, TAB, msgLDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+            fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t1\t%s\t%s\t%s\t%s\n' \
+                % (nextAccKey, smID, prefixPart, numericPart, msgLDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
 
-            fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
-                % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+            fpAccRefFile.write('%s\t%s\t%s\t%s\t%s\t%s\n' \
+                % (nextAccKey, b6RefsKey, userKey, userKey, loaddate, loaddate))
             
-            fpGmB6File.write('%s%s%s%s%s%s%s%s%s%s%s%s%s' % (smID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, TAB, CRT))
-            fpBiotypeB6File.write('%s%s%s%s' % (smID, TAB, biotype, CRT))
+            fpGmB6File.write('%s\t%s\t%s\t%s\t%s\t%s\t\n' % (smID, chr, start, end, strand, description))
+            fpBiotypeB6File.write('%s\t%s\n' % (smID, biotype))
   
             nextAccKey += 1
         
@@ -1050,19 +1051,20 @@ def writeB6Output():
             #
             # Create the strain marker and its accession ID
             #
-            fpStrainMarkerFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s' % (nextSMKey, TAB, b6StrainKey, TAB, markerKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+            fpStrainMarkerFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+	    	% (nextSMKey, b6StrainKey, markerKey, b6RefsKey, userKey, userKey, loaddate, loaddate))
 
             prefixPart, numericPart = accessionlib.split_accnum(smID)
-            fpAccFile.write('%s%s%s%s%s%s%s%s%s%s%s%s%s%s0%s1%s%s%s%s%s%s%s%s%s' \
-                % (nextAccKey, TAB, smID, TAB, prefixPart, TAB, numericPart, TAB, msgLDBKey, TAB, nextSMKey, TAB, mgiTypeKey, TAB, TAB, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+            fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t1\t%s\t%s\t%s\t%s\n' \
+                % (nextAccKey, smID, prefixPart, numericPart, msgLDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
 
-            fpAccRefFile.write('%s%s%s%s%s%s%s%s%s%s%s%s' \
-                % (nextAccKey, TAB, b6RefsKey, TAB, userKey, TAB, userKey, TAB, loaddate, TAB, loaddate, CRT))
+            fpAccRefFile.write('%s\t%s\t%s\t%s\t%s\t%s\n' \
+                % (nextAccKey, b6RefsKey, userKey, userKey, loaddate, loaddate))
 
             nextAccKey += 1
 
-            fpGmB6File.write('%s%s%s%s%s%s%s%s%s%s%s%s' % (smID, TAB, chr, TAB, start, TAB, end, TAB, strand, TAB, description, CRT))
-            fpBiotypeB6File.write('%s%s%s%s' % (smID, TAB, biotype, CRT))
+            fpGmB6File.write('%s\t%s\t%s\t%s\t%s\t%s\n' % (smID, chr, start, end, strand, description))
+            fpBiotypeB6File.write('%s\t%s\n' % (smID, biotype))
             
             # 6/12 GF-184, removed all associated IDs from strain gene	
             # for blat hits in the input file associate the GenBank IDs that was
