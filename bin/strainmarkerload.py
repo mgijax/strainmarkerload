@@ -252,7 +252,7 @@ class StrainMarker:
         self.markerKey = ''
         self.strainKey = ''
         self.mgpensID = ''
-        self.mgpID = ''
+        self.mgpIDs = []
         self.chr = ''
         self.start = ''
         self.end = ''
@@ -595,7 +595,7 @@ def parseMGPFiles( ):
 
             mgpensID = ''
             ensemblID = ''
-            mgpID = ''
+            mgpIDs = []
             mgiIDs = []
             symbol = ''
             markerKey = ''
@@ -615,8 +615,9 @@ def parseMGPFiles( ):
                 # if projection_parent_gene not found, mgiID = '' and markerless strain gene will be loaded
                 elif t.find('projection_parent_gene=') != -1:
                     hasProjectionParent = 1
-                    ensemblID = t.split('=')[1].split('.')[0]
-                    ensemblID = ensemblID.replace('\n', '')
+                    allEns = t.split('=')[1].split('.')[0]
+                    allEns = allEns.replace('\n', '').split(',')
+                    ensemblID = allEns[0]
                     if ensemblID.find('ENSMUS')!= 0:
                         # not an ensembl ID report/load markerless strain gene
                         qcDict['ens_no'].append(line)
@@ -633,8 +634,8 @@ def parseMGPFiles( ):
                 # if mgp=MGP_AJ_G0015774
                 # ignore MGP_CAROLIEiJ
                 elif t.find('mgp=') != -1 and t.find('mgp=MGP_CAROLIEiJ') != 0:
-                    mgpID = t.split('=')[1]
-                    mgpID = mgpID.replace('\n', '')
+                    mgp = t.split('=')[1]
+                    mgpIDs = mgp.replace('\n', '').split(',')
 
                 elif t.find('biotype=') != -1:
                     biotype = t.split('=')[1]
@@ -727,7 +728,7 @@ def parseMGPFiles( ):
             strainMarkerObject.markerKey = markerKey
             strainMarkerObject.strainKey = strainKey
             strainMarkerObject.mgpensID = mgpensID
-            strainMarkerObject.mgpID = mgpID
+            strainMarkerObject.mgpIDs = mgpIDs
             strainMarkerObject.chr = chr
             strainMarkerObject.start = start
             strainMarkerObject.end = end
@@ -778,7 +779,7 @@ def writeMGPOutput():
 
                     # write out to bcp file
                     mgpensID = strainMarkerObject.mgpensID
-                    mgpID = strainMarkerObject.mgpID
+                    mgpIDs = strainMarkerObject.mgpIDs
                     mgiID = strainMarkerObject.markerID 
                     markerKey = strainMarkerObject.markerKey
 
@@ -810,13 +811,14 @@ def writeMGPOutput():
                     	% (nextAccKey, mgpRefsKey, userKey, userKey, loaddate, loaddate))
                     nextAccKey += 1
 
-		    # optional : if mgpID exists, attach as secondary id
-                    if mgpID != '':
-                       prefixPart, numericPart = accessionlib.split_accnum(mgpID)
-                       ldbKey = mgpLDBKey
-                       fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t0\t%s\t%s\t%s\t%s\n' \
-                             % (nextAccKey, mgpID, prefixPart, numericPart, ldbKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
-                       nextAccKey += 1
+		    # optional : if mgpIDs exists, attach as secondary id
+                    if len(mgpIDs) > 0:
+                       for mgp in mgpIDs:
+                           prefixPart, numericPart = accessionlib.split_accnum(mgp)
+                           ldbKey = mgpLDBKey
+                           fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t0\t%s\t%s\t%s\t%s\n' \
+                                 % (nextAccKey, mgp, prefixPart, numericPart, ldbKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
+                           nextAccKey += 1
 
                     fpGmMgpFile.write('%s\t%s\t%s\t%s\t%s\t%s\t\n' % (mgpensID, chr, start, end, strand, description))
                     fpBiotypeMgpFile.write('%s\t%s\n' % (mgpensID, biotype))
