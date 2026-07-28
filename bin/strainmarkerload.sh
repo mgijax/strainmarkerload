@@ -138,6 +138,7 @@ done
 date >> ${LOG_DIAG} 2>&1
 echo "Removing MGI GFF File from input directory" >> ${LOG_DIAG} 2>&1
 rm -rf ${INPUT_MGI_GFF_FILE} >> ${LOG_DIAG} 2>&1
+rm -rf ${INPUT_MGI_GFF_FILE}.gz >> ${LOG_DIAG} 2>&1
 echo "Copying new MGI GFF File from FTP site" >> ${LOG_DIAG} 2>&1
 cp ${INPUT_MGI_GFF} ${INPUTDIR} >> ${LOG_DIAG} 2>&1
 echo "Unzipping MGI GFF Files" >> ${LOG_DIAG} 2>&1
