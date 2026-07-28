@@ -38,9 +38,10 @@
 #
 #      This script will perform following steps:
 #
-#      1) unzip the MGI GFF3 file
-#      2) if we are loading MGP (B6_ONLY=false), preprocess the MGP files
-#      3) run strainmarkerload.py
+#      1) run ensembl gff3 116 patching : 'patched' folder
+#      2) copy patched files from 'patched' folder to 'input' folder and unzip
+#      3) copy & unzip the MGI gff3 file from 'export' folder to 'input' folder
+#      4) run strainmarkerload.py
 #
 ###########################################################################
 #
