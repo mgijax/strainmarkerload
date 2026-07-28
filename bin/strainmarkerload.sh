@@ -5,9 +5,8 @@
 #
 #  Purpose:
 #
-#      This script is a wrapper around the process that loads 
-#      MGP and MGI B6 Strain Genes 
-#       
+#      This script is called from straingenemodelload/bin/straingenemodelload.sh.
+#      This script is a wrapper around the process that loads MGP and MGI B6 Strain Genes 
 #      This script assumes the caller (straingenemodelload/bin/straingenemodelload.sh)
 #
 #  Usage:
@@ -35,17 +34,13 @@
 #      0:  Successful completion
 #      1:  Fatal error occurred
 #
-#  Assumes:  Nothing
-#
 #  Implementation:
 #
 #      This script will perform following steps:
 #
 #      1) unzip the MGI GFF3 file
-#      2) if we are loading MGP (B6_ONLY=false),  preprocess the MGP files
+#      2) if we are loading MGP (B6_ONLY=false), preprocess the MGP files
 #      3) run strainmarkerload.py
-#
-#  Notes:  None
 #
 ###########################################################################
 #
@@ -53,8 +48,9 @@
 #
 #  Date        SE   Change Description
 #  ----------  ---  -------------------------------------------------------
-#
-#  04/25/2018  sc  Initial development
+#  07/28/2026  lec  sprt-26/Strainmarker load for new Strain Genes
+#  07/28/2026  jer  sprt-383/Strain Gene GFF3 file patching
+#  04/25/2018  sc   Initial development
 #
 ###########################################################################
 
@@ -110,8 +106,32 @@ fi
 # createArchive including OUTPUTDIR, startLog, getConfigEnv
 # sets "JOBKEY"
 #
-
 preload ${OUTPUTDIR} 
+
+#
+# Run the Ensembl Gff3 Patching
+#
+#date >> ${LOG_DIAG} 2>&1
+#echo "Running patchEnsemblGff116.sh" >> ${LOG_DIAG} 2>&1
+#pushd bin/patching >> ${LOG_DIAG} 2>&1
+#./patchEnsemblGff116.sh ${INPUT_MGP_GFF_DIR}/*/*.gff3.gz >> ${LOG_DIAG} 2>&1
+#popd >> ${LOG_DIAG} 2>&1
+
+#
+# Copy Strain GFF3
+#
+date >> ${LOG_DIAG} 2>&1
+echo "Removing old Strain GFF3 Files from input directory" >> ${LOG_DIAG} 2>&1
+rm -rf ${INPUTDIR}/Mus*.gff3 >> ${LOG_DIAG} 2>&1
+echo "Copying new Strain GFF3 Files from patched directory & gzip" >> ${LOG_DIAG} 2>&1
+#ls -l ${PATCH_ODIR}/*/*.gz
+cp ${PATCH_ODIR}/*/*.gz ${INPUTDIR} >> ${LOG_DIAG} 2>&1
+cd ${INPUTDIR}
+for i in *.gz
+do
+gunzip $i
+done
+exit 0
 
 #
 # Copy MGI.gff3 from public ftp site
@@ -124,13 +144,6 @@ preload ${OUTPUTDIR}
 #scp -p ${GFF3_SERVER}:${INPUT_MGI_GFF} ${INPUTDIR} >> ${LOG_DIAG} 2>&1
 #echo "Unzipping MGI GFF Files" >> ${LOG_DIAG} 2>&1
 #gunzip ${INPUT_MGI_GFF_FILE}.g>> ${LOG_DIAG} 2>&1
-
-#date >> ${LOG_DIAG} 2>&1
-#echo "Removing old Strain GFF3 Files from input directory" >> ${LOG_DIAG} 2>&1
-#rm -rf ${INPUTDIR}/Mus*.gff3 >> ${LOG_DIAG} 2>&1
-#echo "Copying new Strain GFF3 Files from patched directory & gzip" >> ${LOG_DIAG} 2>&1
-#gzip -c ${PATCHDIR}/*/* ${INPUTDIR} >> ${LOG_DIAG} 2>&1
-
 
 #
 # run the load
