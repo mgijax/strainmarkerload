@@ -110,42 +110,58 @@ fi
 preload ${OUTPUTDIR} 
 
 #
-# Unzip the compressed archive file
-# Run the Ensembl Gff3 Patching
+# if lastrun does not exist, then run patching
 #
-date >> ${LOG_DIAG} 2>&1
-rm -rf ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log
-gunzip -c ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log.gz > ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log
-echo "Running patchEnsemblGff116.sh" >> ${LOG_DIAG} 2>&1
-pushd ${STRAINMARKERLOAD}/bin/patching >> ${LOG_DIAG} 2>&1
-./patching/patchEnsemblGff116.sh ${INPUT_MGP_GFF_DIR}/*/*.gff3.gz >> ${LOG_DIAG} 2>&1
-popd >> ${LOG_DIAG} 2>&1
+LASTRUN_FILE=${PATCH_ODIR}/lastrun
+if [ ! -f ${LASTRUN_FILE} ]
+then
+    date >> ${LOG_DIAG} 2>&1
+    echo "Unzip the compressed archive file" >> ${LOG_DIAG} 2>&1
+    rm -rf ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log >> ${LOG_DIAG} 2>&1
+    echo "Running patchEnsemblGFF116.sh" >> ${LOG_DIAG} 2>&1
+    gunzip -c ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log.gz > ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log >> ${LOG_DIAG} 2>&1
+    pushd ${STRAINMARKERLOAD}/bin/patching >> ${LOG_DIAG} 2>&1
+    ./patching/patchEnsemblGFF116.sh ${INPUT_MGP_GFF_DIR}/*/*.gff3.gz >> ${LOG_DIAG} 2>&1
+    popd >> ${LOG_DIAG} 2>&1
+    touch ${LASTRUN_FILE} >> ${LOG_DIAG} 2>&1
+    date >> ${LOG_DIAG} 2>&1
+else
+    echo "${PATCH_ODIR}/lastrun exists; skipping patchEnsemblGFF116" >> ${LOG_DIAG} 2>&1
+fi
 
 #
-# Copy the Ensembl Gff3 Patched Files to Input Folder & Unzip
+# if lastrun does not exist, then copy GFF3 files
 #
-date >> ${LOG_DIAG} 2>&1
-echo "Removing old Strain GFF3 Files from input directory" >> ${LOG_DIAG} 2>&1
-rm -rf ${INPUTDIR}/Mus*.gff3 >> ${LOG_DIAG} 2>&1
-echo "Copying new Strain GFF3 Files from patched directory & gzip" >> ${LOG_DIAG} 2>&1
-cp ${PATCH_ODIR}/*/*.gz ${INPUTDIR} >> ${LOG_DIAG} 2>&1
-cd ${INPUTDIR}
-for i in *.gz
-do
-gunzip $i
-done
+LASTRUN_FILE=${INPUTDIR}/lastrun
+if [ ! -f ${LASTRUN_FILE} ]
+then
+    date >> ${LOG_DIAG} 2>&1
 
-#
-# Copy MGI.gff3 from public ftp site
-#
-date >> ${LOG_DIAG} 2>&1
-echo "Removing MGI GFF File from input directory" >> ${LOG_DIAG} 2>&1
-rm -rf ${INPUT_MGI_GFF_FILE} >> ${LOG_DIAG} 2>&1
-rm -rf ${INPUT_MGI_GFF_FILE}.gz >> ${LOG_DIAG} 2>&1
-echo "Copying new MGI GFF File from FTP site" >> ${LOG_DIAG} 2>&1
-cp ${INPUT_MGI_GFF} ${INPUTDIR} >> ${LOG_DIAG} 2>&1
-echo "Unzipping MGI GFF Files" >> ${LOG_DIAG} 2>&1
-gunzip ${INPUT_MGI_GFF_FILE}.gz >> ${LOG_DIAG} 2>&1
+    # Copy the Ensembl GFF3 Patched files to Input Folder & Unzip
+    echo "Removing old Strain GFF3 files from input directory" >> ${LOG_DIAG} 2>&1
+    rm -rf ${INPUTDIR}/Mus*.gff3 >> ${LOG_DIAG} 2>&1
+    echo "Copying new Strain GFF3 Files from patched directory & gzip" >> ${LOG_DIAG} 2>&1
+    cp ${PATCH_ODIR}/*/*.gz ${INPUTDIR} >> ${LOG_DIAG} 2>&1
+    cd ${INPUTDIR}
+    for i in *.gz
+    do
+        gunzip $i
+    done
+
+    # Copy MGI.gff3 from public ftp site
+    echo "Removing MGI GFF File from input directory" >> ${LOG_DIAG} 2>&1
+    rm -rf ${INPUT_MGI_GFF_FILE} >> ${LOG_DIAG} 2>&1
+    rm -rf ${INPUT_MGI_GFF_FILE}.gz >> ${LOG_DIAG} 2>&1
+    echo "Copying new MGI GFF File from FTP site" >> ${LOG_DIAG} 2>&1
+    cp ${INPUT_MGI_GFF} ${INPUTDIR} >> ${LOG_DIAG} 2>&1
+    echo "Unzipping MGI GFF Files" >> ${LOG_DIAG} 2>&1
+    gunzip ${INPUT_MGI_GFF_FILE}.gz >> ${LOG_DIAG} 2>&1
+
+    touch ${LASTRUN_FILE} >> ${LOG_DIAG} 2>&1
+    date >> ${LOG_DIAG} 2>&1
+else
+    echo "${INPUTDIR}/lastrun exists; skipping GFF3 copy" >> ${LOG_DIAG} 2>&1
+fi
 
 #
 # run the load

@@ -555,8 +555,9 @@ def parseMGPFiles( ):
 	    
         # resolve strain with translation lookup
         if inputStrain not in strainTranslationLookup:
-            #print('inputStrain not in strainTranslationLookup:', inputStrain, len(inputStrain))
+            print('inputStrain not in strainTranslationLookup:', inputStrain, len(inputStrain))
             qcDict['strain_u'].append(inputStrain)
+            fpIn.close()
             continue 
 
         # get the strain key
@@ -737,6 +738,7 @@ def parseMGPFiles( ):
             strainMarkerObject.description = description
             strainMarkerDict[mgiID].append(strainMarkerObject)
 
+        fpIn.close()
         # end of fpIn.readlines()
 
         ctByStrain[strain] = recordCt
@@ -1144,7 +1146,7 @@ def writeCuratorLog():
     #
     #  process remaining QC
     #order = ['strain_u', 'chr_u', 'chr_m', 'start', 'end', 'strand', 'start/end', 'mgi_u', 'ens_no', 'ens_multi']
-    order = ['strain_u', 'mgi_u', 'ens_no', 'ens_multi']
+    order = ['mgi_u', 'ens_no', 'ens_multi']
     for key in order:
         qcList = qcDict[key]
         if qcList == []:
