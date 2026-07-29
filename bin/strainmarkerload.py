@@ -1142,9 +1142,9 @@ def writeCuratorLog():
         fpLogCur.write('Total %s: %s%s%s' % (key, len(qcList), CRT, CRT))
     
     #
-    #  process remaining QC in order specified by richard
-    #  'ens_misspp'
-    order = ['strain_u', 'chr_u', 'chr_m', 'start', 'end', 'strand', 'start/end', 'mgi_u', 'ens_no', 'ens_multi']
+    #  process remaining QC
+    #order = ['strain_u', 'chr_u', 'chr_m', 'start', 'end', 'strand', 'start/end', 'mgi_u', 'ens_no', 'ens_multi']
+    order = ['strain_u', 'mgi_u', 'ens_no', 'ens_multi']
     for key in order:
         qcList = qcDict[key]
         if qcList == []:
