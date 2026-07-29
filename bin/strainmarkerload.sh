@@ -110,9 +110,12 @@ fi
 preload ${OUTPUTDIR} 
 
 #
+# Unzip the compressed archive file
 # Run the Ensembl Gff3 Patching
 #
 date >> ${LOG_DIAG} 2>&1
+rm -rf ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log
+gunzip -c ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log.gz > ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log
 echo "Running patchEnsemblGff116.sh" >> ${LOG_DIAG} 2>&1
 pushd ${STRAINMARKERLOAD}/bin/patching >> ${LOG_DIAG} 2>&1
 ./patching/patchEnsemblGff116.sh ${INPUT_MGP_GFF_DIR}/*/*.gff3.gz >> ${LOG_DIAG} 2>&1

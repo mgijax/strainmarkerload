@@ -75,10 +75,5 @@ then
     mkdir -p ${PATCH_ODIR}
 fi
 
-#
-# Unzip the compressed archive file
-#
-gunzip -c ./bin/patching/archive_mgps.csh.log.gz > ./bin/patching/archive_mgps.csh.log
-
 exit 0
 
