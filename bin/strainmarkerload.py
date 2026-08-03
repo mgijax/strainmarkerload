@@ -185,7 +185,7 @@ chrLookup = {}		     # {Mouse, Laboratory chr: chrKey, ...}
 biotypeLookup = {}           # {raw biotype:feature type, ...}
 mcvTermLookup = []	     # list of feature types (B6)
 
-# the MGP Strain Marker reference key for J:259852
+# the MGP Strain Marker reference key for J:389486
 mgpRefsKey = 834890
 
 # the MGI B6 Strain Marker reference key for J:260092
