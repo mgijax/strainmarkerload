@@ -323,7 +323,7 @@ def init():
     qcDict['mgpens'] = []    # Strain (non-B6) Ensembl ID missing from input, record(s) skipped
     qcDict['mgi_u'] = []     # Ensembl ID unresolved, report create strain marker with null marker
     qcDict['ens_no'] = []    # projection_parent_gene does not contain ENS ID, report, create strain marker with null marker
-    qcDict['ens_misspp'] = []  # Missing projection_parent_gene (ensembl id) report, create strain marker with null marker
+    #qcDict['ens_misspp'] = []  # Missing projection_parent_gene (ensembl id) report, create strain marker with null marker
     qcDict['ens_multi'] = [] # ensembl ID assoc > 1 marker, report, create strain marker with null marker
     qcDict['mgi_mgp'] = []   # list of {mgiID: ([set of mpIDs]), ...}, one for each strain file used to 
                              # a) determine multiple MGP IDs (within a given strain) per marker, report and create strain gene
@@ -341,7 +341,7 @@ def init():
     messageMap['mgpens'] = 'Strain (non-B6) Ensembl ID missing from input, record(s) skipped'
     messageMap['mgi_u'] = 'projection_parent_gene no match to MGI Marker'
     messageMap['ens_no'] = 'projection_parent_gene from input not an Ensembl ID, strain marker created with null marker'
-    messageMap['ens_misspp'] = 'projection_parent_gene missing from input, strain marker created with null marker'
+    #messageMap['ens_misspp'] = 'projection_parent_gene missing from input, strain marker created with null marker'
     messageMap['ens_multi'] = 'Ensembl ID associated with > 1 marker, strain marker created with null marker'
     messageMap['mgi_mgp'] = 'Markers from input with > 1 Strain specific MGP ID, report and load strain marker and MGI marker association'
 
@@ -642,9 +642,9 @@ def parseMGPFiles( ):
                     biotype = t.split('=')[1]
 
 	    # if not 'projection_parent_gene', then continue to next fpIn()
-            if not hasProjectionParent:
-                qcDict['ens_misspp'].append('%s' %  line)
-                continue
+            #if not hasProjectionParent:
+            #    qcDict['ens_misspp'].append('%s' %  line)
+            #    continue
 
 	    # else perform some sanity checks
 
@@ -695,7 +695,8 @@ def parseMGPFiles( ):
                     symbol = marker.symbol
 
 	    # if hasProjectionParent and sanity checks fail, then continue to next fpIn()
-            if hasProjectionParent == 1 and isSkip == 1:
+            #if hasProjectionParent == 1 and isSkip == 1:
+            if isSkip == 1:
                 mgpSkipCt += 1
                 continue
             
@@ -1146,7 +1147,7 @@ def writeCuratorLog():
     #
     #  process remaining QC
     #order = ['strain_u', 'chr_u', 'chr_m', 'start', 'end', 'strand', 'start/end', 'mgi_u', 'ens_no', 'ens_multi']
-    order = ['mgi_u', 'ens_no', 'ens_multi']
+    order = ['strain_u', 'start', 'end', 'strand', 'start/end', 'mgi_u', 'ens_no', 'ens_multi']
     for key in order:
         qcList = qcDict[key]
         if qcList == []:
