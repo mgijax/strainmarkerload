@@ -83,26 +83,14 @@ USAGE='strainmarkerload.py'
 # and one for coordinates based on BLAT (from GFF file)
 #
 b6DescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined annotations to mouse reference assembly %s provided by: %s. Note that the source annotations for this representation of the C57BL/6J gene model sequence can derive from different assembly patches (\\\Ref(J:262996||))."
-
 b6BlatDescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for the C57BL/6J strain version of Gene: %s, Gene type: %s, from outermost boundary coordinates of combined BLAT alignments to the mouse reference assembly %s for sequences: %s (\\\Ref(J:262996||))."
 
 #
 # MGP has 4 templates
-# 1. For strains: M. caroli, M. pahari and M. spretus
-#    1a. Where strain gene has an MGI gene association (mgpNonMuscGene) Example:
-#        chr6:120506884-120510591, - strand. Annotation of mouse strain CAROLI/EiJ genome assembly provided by the University of California Santa Cruz (UCSC) Genome Browser Group and the Wellcome Sanger Institute's Mouse Genomes Project (MGP). Distributed via Ensembl Release 91. Gene type: protein coding gene; Gene Name: Tpi1.0
-#    1b. Where strain gene has no MGI gene association (mgpNonMuscNoGene) Example:
-#	chrX:158011238-158024597, - strand. Annotation of mouse strain CAROLI/EiJ genome assembly provided by the University of California Santa Cruz (UCSC) Genome Browser Group and the Wellcome Sanger Institute's Mouse Genomes Project (MGP). Distributed via Ensembl Release 91. Gene type: unclassified non-coding RNA gene; Gene Name: undefined.
-# 2. For all other non-B6 strains
-#    2a. Where strain gene has an MGI gene association (mgpMuscGene) Example:
-#        chr1:102129-102238, + strand. Annotation of mouse strain AKR/J genome assembly provided by the GENCODE consortium. Distributed via Ensembl Release 91.  Gene type: snRNA gene; Gene Name: Gm26206.
-#    2b. Where strain gene has no MGI gene association (mgpMuscNoGene) Example:
-#        chr1:19831397-20359431, - strand. Annotation of mouse strain AKR/J genome assembly provided by the GENCODE consortium. Distributed via Ensembl Release 91. Gene type: protein coding gene; Gene Name: undefined.
-#
-mgpNonMuscGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the University of California Santa Cruz (UCSC) Genome Browser Group and the Wellcome Sanger Institute's Mouse Genomes Project (MGP). Distributed via %s. Gene type: %s; Gene Name: %s." 
-mgpNonMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the University of California Santa Cruz (UCSC) Genome Browser Group and the Wellcome Sanger Institute's Mouse Genomes Project (MGP). Distributed via %s. Gene type: %s; Gene Name: undefined."
-mgpMuscGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by GENCODE consortium. Distributed via %s. Gene type: %s; Gene Name: %s."
-mgpMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by GENCODE consortium. Distributed via %s. Gene type: %s; Gene Name: undefined."
+mgpNonMuscGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via Ensembl Release 116. Gene type: %s; Gene Symbol: %s." 
+mgpNonMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via Ensembl Release 116. Gene type: %s; Gene Symbol: undefined."
+mgpMuscGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via Ensembl Release 116. Gene type: %s; Gene Symbol: %s."
+mgpMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via Ensembl Release 116. Gene type: %s; Gene Symbol: undefined."
 
 # bcp file creation/modification date`
 loaddate = loadlib.loaddate
@@ -700,17 +688,17 @@ def parseMGPFiles( ):
 
             # default to gene present description, if no gene, template will be updated below
             if strainKey in nonMuscStrainKeys:
-                description = mgpNonMuscGeneDescriptTemplate % (chr, start, end, strand, strain, releaseMGP, biotype, symbol)
+                description = mgpNonMuscGeneDescriptTemplate % (chr, start, end, strand, strain, biotype, symbol)
             else:
-                description = mgpMuscGeneDescriptTemplate % (chr, start, end, strand, strain, releaseMGP, biotype, symbol)
+                description = mgpMuscGeneDescriptTemplate % (chr, start, end, strand, strain, biotype, symbol)
 
 	    # marker-less row can still be processed
             if markerKey == '': # count them
                 mgpNoMarkerCt += 1
                 if strainKey in nonMuscStrainKeys:
-                    description = mgpNonMuscNoGeneDescriptTemplate % (chr, start, end, strand, strain, releaseMGP, biotype)
+                    description = mgpNonMuscNoGeneDescriptTemplate % (chr, start, end, strand, strain, biotype)
                 else:
-                    description = mgpMuscNoGeneDescriptTemplate % (chr, start, end, strand, strain, releaseMGP, biotype)
+                    description = mgpMuscNoGeneDescriptTemplate % (chr, start, end, strand, strain, biotype)
                 # create a temporary ID of markerless strain marker object - 
                 # each must have its own uniq set of coordinate attributes
                 mgiID = 'TEMP:%s' % mgpNoMarkerCt
