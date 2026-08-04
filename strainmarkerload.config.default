@@ -99,7 +99,7 @@ export B6_ONLY
 
 PATCH_IDIR="${INPUT_MGP_GFF_DIR}"
 PATCH_ODIR="${FILEDIR}/patched"
-PATCH_FTP_DIR="${FTPROOT}/pub/alliance/mousestrains"
+PATCH_FTP_DIR="${FTPROOT}/pub/ensembl_patched/release-116/gff3"
 PATCH_LOG="${LOGDIR}/strainmarkerload.patching.log"
 PATCH_PPG_LIMIT="3"
 PATCH_ARCHIVED_MGP_IDS="${INSTALLDIR}/bin/patching/archive_mgps.csh.log"
