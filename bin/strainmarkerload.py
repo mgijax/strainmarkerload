@@ -87,10 +87,11 @@ b6BlatDescriptTemplate = "Chr%s:%s-%s, %s strand. MGI derived this sequence for 
 
 #
 # MGP has 4 templates
-mgpNonMuscGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via Ensembl Release 116. Gene type: %s; Gene Symbol: %s." 
-mgpNonMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via Ensembl Release 116. Gene type: %s; Gene Symbol: undefined."
-mgpMuscGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via Ensembl Release 116. Gene type: %s; Gene Symbol: %s."
-mgpMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via Ensembl Release 116. Gene type: %s; Gene Symbol: undefined."
+#
+mgpNonMuscGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via %s. Gene type: %s; Gene Symbol: %s." 
+mgpNonMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via %s. Gene type: %s; Gene Symbol: undefined."
+mgpMuscGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via %s. Gene type: %s; Gene Symbol: %s."
+mgpMuscNoGeneDescriptTemplate = "chr%s:%s-%s, %s strand. Annotation of mouse strain %s genome assembly provided by the GENCODE consortium and distributed via %s. Gene type: %s; Gene Symbol: undefined."
 
 # bcp file creation/modification date`
 loaddate = loadlib.loaddate
@@ -688,17 +689,17 @@ def parseMGPFiles( ):
 
             # default to gene present description, if no gene, template will be updated below
             if strainKey in nonMuscStrainKeys:
-                description = mgpNonMuscGeneDescriptTemplate % (chr, start, end, strand, strain, biotype, symbol)
+                description = mgpNonMuscGeneDescriptTemplate % (chr, start, end, strand, releaseMGP, strain, biotype, symbol)
             else:
-                description = mgpMuscGeneDescriptTemplate % (chr, start, end, strand, strain, biotype, symbol)
+                description = mgpMuscGeneDescriptTemplate % (chr, start, end, strand, releaseMGP, strain, biotype, symbol)
 
 	    # marker-less row can still be processed
             if markerKey == '': # count them
                 mgpNoMarkerCt += 1
                 if strainKey in nonMuscStrainKeys:
-                    description = mgpNonMuscNoGeneDescriptTemplate % (chr, start, end, strand, strain, biotype)
+                    description = mgpNonMuscNoGeneDescriptTemplate % (chr, start, end, strand, releaseMGP, strain, biotype)
                 else:
-                    description = mgpMuscNoGeneDescriptTemplate % (chr, start, end, strand, strain, biotype)
+                    description = mgpMuscNoGeneDescriptTemplate % (chr, start, end, strand, releaseMGP, strain, biotype)
                 # create a temporary ID of markerless strain marker object - 
                 # each must have its own uniq set of coordinate attributes
                 mgiID = 'TEMP:%s' % mgpNoMarkerCt
