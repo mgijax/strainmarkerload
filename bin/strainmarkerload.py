@@ -689,17 +689,17 @@ def parseMGPFiles( ):
 
             # default to gene present description, if no gene, template will be updated below
             if strainKey in nonMuscStrainKeys:
-                description = mgpNonMuscGeneDescriptTemplate % (chr, start, end, strand, releaseMGP, strain, biotype, symbol)
+                description = mgpNonMuscGeneDescriptTemplate % (chr, start, end, strand, strain, releaseMGP, biotype, symbol)
             else:
-                description = mgpMuscGeneDescriptTemplate % (chr, start, end, strand, releaseMGP, strain, biotype, symbol)
+                description = mgpMuscGeneDescriptTemplate % (chr, start, end, strand, strain, releaseMGP, biotype, symbol)
 
 	    # marker-less row can still be processed
             if markerKey == '': # count them
                 mgpNoMarkerCt += 1
                 if strainKey in nonMuscStrainKeys:
-                    description = mgpNonMuscNoGeneDescriptTemplate % (chr, start, end, strand, releaseMGP, strain, biotype)
+                    description = mgpNonMuscNoGeneDescriptTemplate % (chr, start, end, strand, strain, releaseMGP, biotype)
                 else:
-                    description = mgpMuscNoGeneDescriptTemplate % (chr, start, end, strand, releaseMGP, strain, biotype)
+                    description = mgpMuscNoGeneDescriptTemplate % (chr, start, end, strand, strain, releaseMGP, biotype)
                 # create a temporary ID of markerless strain marker object - 
                 # each must have its own uniq set of coordinate attributes
                 mgiID = 'TEMP:%s' % mgpNoMarkerCt
