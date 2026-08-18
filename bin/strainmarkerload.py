@@ -606,7 +606,7 @@ def parseMGPFiles( ):
                     allEns = t.split('=')[1].split('.')[0]
                     allEns = allEns.replace('\n', '').split(',')
                     ensemblID = allEns[0]
-                    if ensemblID.find('ENSMUS')!= 0:
+                    if ensemblID.find('ENS')!= 0:
                         # not an ensembl ID report/load markerless strain gene
                         qcDict['ens_no'].append(line)
                     elif ensemblID not in ensemblLookup:
@@ -786,7 +786,7 @@ def writeMGPOutput():
 
                     prefixPart, numericPart = accessionlib.split_accnum(mgpensID)
 		    # use proper logicaldb key
-                    if mgpensID.find('ENSMUS') == 0:
+                    if mgpensID.find('ENS') == 0:
                        ldbKey = ensLDBKey
                     else:
                        ldbKey = mgpLDBKey
