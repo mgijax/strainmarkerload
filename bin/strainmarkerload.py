@@ -111,7 +111,6 @@ loadOnlyB6 = os.environ['B6_ONLY']
 print('loadOnlyB6: %s' % loadOnlyB6)
 
 # accession ID logicalDB keys
-ensLDBKey = 60		# Ensembl
 mgpLDBKey = 209 	# Mouse Genome Project
 msgLDBKey = 212		# MGI Strain Gene
 
@@ -785,13 +784,8 @@ def writeMGPOutput():
 		    	% (nextSMKey, strainKey, markerKey, mgpRefsKey, userKey, userKey, loaddate, loaddate))
 
                     prefixPart, numericPart = accessionlib.split_accnum(mgpensID)
-		    # use proper logicaldb key
-                    if mgpensID.find('ENS') == 0:
-                       ldbKey = ensLDBKey
-                    else:
-                       ldbKey = mgpLDBKey
                     fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t1\t%s\t%s\t%s\t%s\n' \
-                    	% (nextAccKey, mgpensID, prefixPart, numericPart, ldbKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
+                    	% (nextAccKey, mgpensID, prefixPart, numericPart, mgpLDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
 
                     fpAccRefFile.write('%s\t%s\t%s\t%s\t%s\t%s\n' 
                     	% (nextAccKey, mgpRefsKey, userKey, userKey, loaddate, loaddate))
@@ -801,9 +795,8 @@ def writeMGPOutput():
                     if len(mgpIDs) > 0:
                        for mgp in mgpIDs:
                            prefixPart, numericPart = accessionlib.split_accnum(mgp)
-                           ldbKey = mgpLDBKey
                            fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t0\t%s\t%s\t%s\t%s\n' \
-                                 % (nextAccKey, mgp, prefixPart, numericPart, ldbKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
+                                 % (nextAccKey, mgp, prefixPart, numericPart, mgpLDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
                            nextAccKey += 1
 
                     fpGmMgpFile.write('%s\t%s\t%s\t%s\t%s\t%s\t\n' % (mgpensID, chr, start, end, strand, description))
