@@ -99,6 +99,7 @@ class Patcher :
         symbol2mgi = {}
         entrez2mgi = {}
         mgi2ensembl = {}
+        ensembl2ensemblMult = {}
         q1 = '''
             SELECT m.symbol, a.accid
             FROM mrk_marker m, acc_accession a
@@ -129,7 +130,12 @@ class Patcher :
             else:
                 mgi2ensembl.setdefault(r['mgiid'],[]).append(r['accid'])
 
-        return symbol2mgi, entrez2mgi, mgi2ensembl
+        for (mgi, ensembls) in mgi2ensembl.items():
+            if len(ensembls) > 1:
+                for e in ensembls:
+                    ensembl2ensemblMult[e] = ensembls
+
+        return symbol2mgi, entrez2mgi, mgi2ensembl, ensembl2ensemblMult
 
     def getMGPids (self, fname) :
         ensembl2mgp = {}
@@ -145,7 +151,7 @@ class Patcher :
         return ensembl2mgp
 
 
-    def process(self, entrez2mgi, mgi2ensembl, symbol2mgi, ensembl2mgp) :
+    def process(self, entrez2mgi, mgi2ensembl, symbol2mgi, ensembl2mgp, ensembl2ensemblMult) :
         global STRAIN
         results = []
         for line in self.ifd:
@@ -164,9 +170,13 @@ class Patcher :
             f = gff3lite.parseLine(line)
             attrs = f[8] # get a handle on the column 9 attributes
             if PPG in attrs:
+                # already has a proj parent.
                 # strip the version number
-                attrs[PPG] = [attrs[PPG].split('.')[0]]
-                self.incPPGCount(attrs[PPG])
+                e = attrs[PPG].split('.')[0]
+                # if there are multiple for this gene, get them
+                attrs[PPG] = ensembl2ensemblMult.get(e, [e])
+                for e2 in attrs[PPG]:
+                    self.incPPGCount(e2)
             elif 'Parent' in attrs or 'ID' not in attrs:
                 # If non-top-level feature, or biological region (or other exotic) feature, just print it
                 pass
@@ -216,8 +226,8 @@ class Patcher :
 
     def doPatching (self) :
         ensembl2mgp = self.getMGPids(PATCH_ARCHIVED_MGP_IDS)
-        symbol2mgi, entrez2mgi, mgi2ensembl = self.getMgiGeneModelIds()
-        lines = self.process(entrez2mgi, mgi2ensembl, symbol2mgi, ensembl2mgp)
+        symbol2mgi, entrez2mgi, mgi2ensembl, ensembl2ensemblMult = self.getMgiGeneModelIds()
+        lines = self.process(entrez2mgi, mgi2ensembl, symbol2mgi, ensembl2mgp, ensembl2ensemblMult)
         return lines
 
     def applyLimit (self, lines) :
