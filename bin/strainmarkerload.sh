@@ -116,12 +116,11 @@ LASTRUN_FILE=${PATCH_ODIR}/lastrun
 if [ ! -f ${LASTRUN_FILE} ]
 then
     date >> ${LOG_DIAG} 2>&1
-    echo "Unzip the compressed archive file" >> ${LOG_DIAG} 2>&1
-    rm -rf ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log >> ${LOG_DIAG} 2>&1
-    echo "Running patchEnsemblGFF116.sh" >> ${LOG_DIAG} 2>&1
-    gunzip -c ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log.gz > ${STRAINMARKERLOAD}/bin/patching/archive_mgps.csh.log >> ${LOG_DIAG} 2>&1
+    echo "Running patchEnsemblGff116.sh" >> ${LOG_DIAG} 2>&1
     pushd ${STRAINMARKERLOAD}/bin/patching >> ${LOG_DIAG} 2>&1
-    ./patching/patchEnsemblGFF116.sh ${INPUT_MGP_GFF_DIR}/*/*.gff3.gz >> ${LOG_DIAG} 2>&1
+    rm -rf $archive_mgps.csh.log >> ${LOG_DIAG} 2>&1
+    gunzip -c archive_mgps.csh.log.gz > archive_mgps.csh.log
+    ./patchEnsemblGff116.sh ${INPUT_MGP_GFF_DIR}/*/*.gff3.gz >> ${LOG_DIAG} 2>&1
     popd >> ${LOG_DIAG} 2>&1
     touch ${LASTRUN_FILE} >> ${LOG_DIAG} 2>&1
     date >> ${LOG_DIAG} 2>&1
