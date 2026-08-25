@@ -116,6 +116,7 @@ msgLDBKey = 212		# MGI Strain Gene
 
 # MRK_StrainMarker MGI Type
 mgiTypeKey = 44
+mgiMarkerTypeKey = 2
 
 # input files
 infileDir = os.environ['INPUTDIR']
@@ -797,6 +798,9 @@ def writeMGPOutput():
                            prefixPart, numericPart = accessionlib.split_accnum(mgp)
                            fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t0\t%s\t%s\t%s\t%s\n' \
                                  % (nextAccKey, mgp, prefixPart, numericPart, mgpLDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
+                           nextAccKey += 1
+                           fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t0\t%s\t%s\t%s\t%s\n' \
+                                 % (nextAccKey, mgp, prefixPart, numericPart, mgpLDBKey, nextSMKey, mgiMarkerTypeKey, userKey, userKey, loaddate, loaddate))
                            nextAccKey += 1
 
                     fpGmMgpFile.write('%s\t%s\t%s\t%s\t%s\t%s\t\n' % (mgpensID, chr, start, end, strand, description))
