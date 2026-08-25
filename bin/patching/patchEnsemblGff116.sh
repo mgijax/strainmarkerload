@@ -47,5 +47,7 @@ done
 # copy patched file to ftp site
 mkdir -p ${PATCH_FTP_DIR}
 scp -r ${PATCH_ODIR}/m* ${PATCH_FTP_DIR}
+# copy README file to ftp site
+scp ${PATCH_README_FILE} ${PATCH_FTP_ROOT}
 
 log "PatchEnsemblGff116 ended at:" `date`
