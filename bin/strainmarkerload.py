@@ -800,7 +800,7 @@ def writeMGPOutput():
                                  % (nextAccKey, mgp, prefixPart, numericPart, mgpLDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
                            nextAccKey += 1
                            fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t0\t%s\t%s\t%s\t%s\n' \
-                                 % (nextAccKey, mgp, prefixPart, numericPart, mgpLDBKey, nextSMKey, mgiMarkerTypeKey, userKey, userKey, loaddate, loaddate))
+                                 % (nextAccKey, mgp, prefixPart, numericPart, mgpLDBKey, markerKey, mgiMarkerTypeKey, userKey, userKey, loaddate, loaddate))
                            nextAccKey += 1
 
                     fpGmMgpFile.write('%s\t%s\t%s\t%s\t%s\t%s\t\n' % (mgpensID, chr, start, end, strand, description))
