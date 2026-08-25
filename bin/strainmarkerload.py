@@ -787,7 +787,6 @@ def writeMGPOutput():
                     prefixPart, numericPart = accessionlib.split_accnum(mgpensID)
                     fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t1\t%s\t%s\t%s\t%s\n' \
                     	% (nextAccKey, mgpensID, prefixPart, numericPart, mgpLDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
-
                     fpAccRefFile.write('%s\t%s\t%s\t%s\t%s\t%s\n' 
                     	% (nextAccKey, mgpRefsKey, userKey, userKey, loaddate, loaddate))
                     nextAccKey += 1
@@ -798,9 +797,13 @@ def writeMGPOutput():
                            prefixPart, numericPart = accessionlib.split_accnum(mgp)
                            fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t0\t%s\t%s\t%s\t%s\n' \
                                  % (nextAccKey, mgp, prefixPart, numericPart, mgpLDBKey, nextSMKey, mgiTypeKey, userKey, userKey, loaddate, loaddate))
+                           fpAccRefFile.write('%s\t%s\t%s\t%s\t%s\t%s\n'
+                                 % (nextAccKey, mgpRefsKey, userKey, userKey, loaddate, loaddate))
                            nextAccKey += 1
                            fpAccFile.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t0\t0\t%s\t%s\t%s\t%s\n' \
                                  % (nextAccKey, mgp, prefixPart, numericPart, mgpLDBKey, markerKey, mgiMarkerTypeKey, userKey, userKey, loaddate, loaddate))
+                           fpAccRefFile.write('%s\t%s\t%s\t%s\t%s\t%s\n'
+                                 % (nextAccKey, mgpRefsKey, userKey, userKey, loaddate, loaddate))
                            nextAccKey += 1
 
                     fpGmMgpFile.write('%s\t%s\t%s\t%s\t%s\t%s\t\n' % (mgpensID, chr, start, end, strand, description))
