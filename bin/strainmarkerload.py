@@ -1154,13 +1154,15 @@ def doDeletes(refsKeys):
     # Throws: Nothing
 
     db.sql('''
-    	select _StrainMarker_key
-        into temporary table toDelete
-        from MRK_StrainMarker
-        where _Refs_key in (%s)
+    	delete from ACC_Accession a
+	using ACC_AccessionReference r
+	where r._Refs_key in (%s)
+	and r._accession_key = a._accession_key
 	''' % refsKeys, None)
-    db.sql('''create index idx1 on toDelete(_StrainMarker_key)''', 'auto')
-    db.sql('''delete from MRK_StrainMarker sm using toDelete d where d._StrainMarker_key = sm._StrainMarker_key''', None)
+    db.commit()
+    db.sql('''
+    	delete from MRK_StrainMarker where _Refs_key in (%s)
+	''' % refsKeys, None)
     db.commit()
 
     return 0
