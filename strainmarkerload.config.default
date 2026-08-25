@@ -32,13 +32,14 @@ fi
 ###########################################################################
 
 #  Path name of the archive, logs, reports and output directories
+INSTALLDIR=${STRAINMARKERLOAD}
 FILEDIR=${DATALOADSOUTPUT}/mgi/strainmarkerload
 ARCHIVEDIR=${FILEDIR}/archive
 LOGDIR=${FILEDIR}/logs
 RPTDIR=${FILEDIR}/reports
 OUTPUTDIR=${FILEDIR}/output
 INPUTDIR=${FILEDIR}/input
-export FILEDIR ARCHIVEDIR LOGDIR RPTDIR OUTPUTDIR INPUTDIR
+export INSTALLDIR FILEDIR ARCHIVEDIR LOGDIR RPTDIR OUTPUTDIR INPUTDIR
 
 # release 116
 INPUT_MGP_GFF_DIR=${DATADOWNLOADS}/ftp.ensembl.org/pub/release-116/gff3
@@ -124,6 +125,4 @@ MAIL_LOADNAME="Strain Marker Load"
 MAIL_LOG_PROC="mgiadmin"
 export MAIL_LOADNAME MAIL_LOG_PROC
 
-INSTALLDIR=${STRAINMARKERLOAD}
-export INSTALLDIR
 
