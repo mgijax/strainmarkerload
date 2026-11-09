@@ -175,8 +175,7 @@ class Patcher :
                 e = attrs[PPG].split('.')[0]
                 # if there are multiple for this gene, get them
                 attrs[PPG] = ensembl2ensemblMult.get(e, [e])
-                for e2 in attrs[PPG]:
-                    self.incPPGCount(e2)
+                self.incPPGCount(attrs[PPG])
             elif 'Parent' in attrs or 'ID' not in attrs:
                 # If non-top-level feature, or biological region (or other exotic) feature, just print it
                 pass
